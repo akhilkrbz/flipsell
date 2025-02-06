@@ -217,7 +217,7 @@ class AuthController extends Controller
     {
         try {
 
-            return $user = auth('api')->user();
+            $user = auth('api')->user();
 
             $details = [
                 'name'              => $request->name,
@@ -233,14 +233,17 @@ class AuthController extends Controller
                 'password'          => '',
                 'status'            => 1,
                 'usertype'          => $request->user_type ?: 0,
-                'created_at'        => Carbon::now(),
                 'updated_at'        => Carbon::now(),
             ];
 
-            User::create($details);
+            $user_update = User::where('id', $user->id)->update($details);
 
-
-
+            return response()->json([
+                'status'    => 200,
+                'success'   => true,
+                'message'   => 'Details saved successfully.',
+                'is_normal_user' => ($request->user_type == 0) ? true : false
+            ]);
 
 
 

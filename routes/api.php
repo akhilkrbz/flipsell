@@ -15,8 +15,8 @@ Route::group([
 ], function ($router) {
     Route::post('user_mobile_validate', [AuthController::class, 'user_mobile_validate']);
     Route::post('verify_otp', [AuthController::class, 'verify_otp']);
-    Route::post('register', [AuthController::class, 'registration']);
-    Route::post('login', [AuthController::class, 'user_mobile_validate']);
+    Route::post('register', [AuthController::class, 'registration'])->middleware('auth:api');
 });
 
+Route::get('login', [AuthController::class, 'user_mobile_validate'])->name('login');
 Route::get('locations', [AuthController::class, 'locations']);
