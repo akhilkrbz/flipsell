@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -20,3 +21,6 @@ Route::group([
 
 Route::get('login', [AuthController::class, 'user_mobile_validate'])->name('login');
 Route::get('locations', [AuthController::class, 'locations']);
+
+
+Route::post('ads', [AdController::class, 'getAllAds']);
