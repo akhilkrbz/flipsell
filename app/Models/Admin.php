@@ -13,5 +13,10 @@ class Admin extends Authenticatable
         'mobile',
         'password',
         'socials',
+        'youtube',
+        'whatsapp',
+        'facebook',
+        'instagram',
+
     ];
 }

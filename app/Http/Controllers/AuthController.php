@@ -7,6 +7,7 @@ use App\Http\Requests\LoginRequest;
 use App\Http\Requests\OtpVerifyRequest;
 use App\Models\Locations;
 use App\Models\User;
+use App\Models\Admin;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -17,6 +18,7 @@ class AuthController extends Controller
     public function register() {
         $validator = Validator::make(request()->all(), [
             'name' => 'required',
+            'mobile_no' => 'nullable|numeric|digits:10|unique:users',
             'email' => 'required|email|unique:users',
             'password' => 'required|confirmed|min:8',
         ]);
@@ -27,6 +29,7 @@ class AuthController extends Controller
 
         $user = new User;
         $user->name = request()->name;
+        $user->mobile = request()->mobile_no; 
         $user->email = request()->email;
         $user->password = bcrypt(request()->password);
         $user->save();
@@ -229,6 +232,7 @@ class AuthController extends Controller
                 'business_phone'    => $request->business_phone,
                 'business_email'    => $request->business_email,
                 'website'           => $request->website,
+               'mobile' => $request->mobile_no,
                 'gst'               => $request->gst,
                 'password'          => '',
                 'status'            => 1,
@@ -255,5 +259,24 @@ class AuthController extends Controller
                 'code'          => $th->getCode(),
             ]);
         }
+    }
+
+
+    public function getFirstAdmin()
+    {
+        $admin = Admin::select( 'email', 'mobile', 'youtube', 'whatsapp', 'facebook', 'instagram')
+                      ->first();
+
+        if (!$admin) {
+            return response()->json([
+                'success' => 'failure',
+                'message' => 'No admin found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => 'success',
+            'data' => $admin
+        ], 200);
     }
 }
