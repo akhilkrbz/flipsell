@@ -14,6 +14,11 @@ class ServiceProvider extends Model
         'gst_number',
         'reg_document',
         'status',
+        'user_id',
+        'business_name',
+        'business_phone',
+        'business_email'
+
     ];
 
     public function category()

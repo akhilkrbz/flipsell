@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\JobController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -19,6 +20,9 @@ Route::group([
     Route::post('user_mobile_validate', [AuthController::class, 'user_mobile_validate']);
     Route::post('verify_otp', [AuthController::class, 'verify_otp']);
     Route::post('register', [AuthController::class, 'registration'])->middleware('auth:api');
+    Route::post('job_requests', [JobController::class, 'jobRequests'])->name('job_requests');
+    Route::post('/get_job_details', [JobController::class, 'getJobDetails']);
+
 });
 
 Route::get('login', [AuthController::class, 'user_mobile_validate'])->name('login');

@@ -6,19 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\OtpVerifyRequest;
 use App\Models\Locations;
+use App\Models\ServiceProvider;
 use App\Models\User;
 use App\Models\Admin;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;                                                         
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Support\Facades\DB;
+
 
 class AuthController extends Controller
 {
     public function register() {
         $validator = Validator::make(request()->all(), [
             'name' => 'required',
-            'mobile_no' => 'nullable|numeric|digits:10|unique:users',
+           
             'email' => 'required|email|unique:users',
             'password' => 'required|confirmed|min:8',
         ]);
@@ -218,49 +222,83 @@ class AuthController extends Controller
     //registration
     public function registration(Request $request)
     {
+        Log::info('Registration API Hit');
+    
         try {
-
-            $user = auth('api')->user();
-
-            $details = [
-                'name'              => $request->name,
-                'email'             => $request->email,
-                'location'          => $request->location,
-                'category'          => $request->category,
-                'subcategory'       => $request->subcategory,
-                'business_name'     => $request->business_name,
-                'business_phone'    => $request->business_phone,
-                'business_email'    => $request->business_email,
-                'website'           => $request->website,
-               'mobile' => $request->mobile_no,
-                'gst'               => $request->gst,
-                'password'          => '',
-                'status'            => 1,
-                'usertype'          => $request->user_type ?: 0,
-                'updated_at'        => Carbon::now(),
+           
+            Log::info('Registration Input Data:', $request->all());
+    
+            $user = auth('api')->user(); 
+    
+          
+            DB::beginTransaction();
+    
+            // Common User Details
+            $userDetails = [
+                'name'      => $request->name,
+                'email'     => $request->email,
+                'location'  => $request->location,
+                'usertype'  => $request->user_type ?: 0,
+                'status'    => 1,
+                'updated_at'=> Carbon::now(),
             ];
-
-            $user_update = User::where('id', $user->id)->update($details);
-
+    
+            // Update user table
+            User::where('id', $user->id)->update($userDetails);
+    
+            if ($request->user_type == 1) {
+                $serviceProviderDetails = [
+                    'category_id'      => $request->category,
+                    'subcategory_id'   => $request->subcategory,
+                    'business_name'    => $request->business_name,
+                    'business_phone'   => $request->business_phone,
+                    'business_email'   => $request->business_email,
+                    'website'          => $request->website,
+                    'gst_number'       => $request->gst,
+                    'updated_at'       => Carbon::now(),
+                ];
+    
+                // Check if user already exists in `service_providers`
+                $existingProvider = ServiceProvider::where('user_id', $user->id)->first();
+    
+                if ($existingProvider) {
+                    // Update existing record
+                    $existingProvider->update($serviceProviderDetails);
+                } else {
+                    // Insert new record
+                    $serviceProviderDetails['user_id'] = $user->id;
+                    $serviceProviderDetails['created_at'] = Carbon::now();
+                    ServiceProvider::create($serviceProviderDetails);
+                }
+            }
+    
+            // Commit the transaction if both tables are updated successfully
+            DB::commit();
+    
             return response()->json([
-                'status'    => 200,
-                'success'   => true,
-                'message'   => 'Details saved successfully.',
-                'is_normal_user' => ($request->user_type == 0) ? true : false
+                'status'          => 200,
+                'success'         => true,
+                'message'         => 'Details saved successfully.',
+                'is_normal_user'  => ($request->user_type == 0)
             ]);
-
-
-
+    
         } catch (\Throwable $th) {
+            DB::rollBack(); // Rollback transaction if any error occurs
+    
+            Log::error('Registration Error:', [
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+    
             return response()->json([
-                'success'       => false,
-                'message'       => 'Something went wrong!!!',
-                'exception'     => $th->getMessage(),
-                'code'          => $th->getCode(),
+                'success'   => false,
+                'message'   => 'Something went wrong!!!',
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
             ]);
         }
     }
-
+    
 
     public function getFirstAdmin()
     {
