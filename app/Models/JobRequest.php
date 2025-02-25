@@ -20,5 +20,15 @@ class JobRequest extends Model
         'status',
         'business_id',
         'accepted_time',
+        'job_date',
+        'job_date_flexible',
+        'address',
+        'image_1',
+        'image_2',
+        'image_3',
+        'full_screen_image',
+        'connect_type',
+        'created_at',
+        'updated_at',
     ];
 }
