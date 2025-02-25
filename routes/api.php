@@ -7,6 +7,7 @@ use App\Http\Controllers\AdController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\JobController;
+use App\Http\Controllers\JobRequestsController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -34,3 +35,4 @@ Route::post('get_contact_details', [AuthController::class, 'getFirstAdmin']);
 
 
 
+Route::post('service_request', [JobRequestsController::class, 'RequestService']);
