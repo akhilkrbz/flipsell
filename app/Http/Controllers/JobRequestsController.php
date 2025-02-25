@@ -72,6 +72,14 @@ class JobRequestsController extends Controller
             ];
             
             JobRequest::create($details);
+
+            return response()->json([
+                'status'    => 200,
+                'success'   => true,
+                'message'   => 'Service requested successfully.'
+            ]);
+
+
         } catch (\Throwable $th) {
     
             Log::error('Error:', [
