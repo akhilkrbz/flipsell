@@ -129,7 +129,7 @@ class AuthController extends Controller
                 //ADD THE NEW USER
                 $details = [
                     'name'      => 'Guest user',
-                    'email'     => null,
+                    'email'     => '',
 
                     'password'  => '',
                     'mobile'    => $request->mobile_no,
