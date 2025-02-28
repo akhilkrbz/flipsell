@@ -7,6 +7,7 @@ use App\Http\Controllers\AdController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\JobController;
+use App\Http\Controllers\UserController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -22,6 +23,8 @@ Route::group([
     Route::post('register', [AuthController::class, 'registration'])->middleware('auth:api');
     Route::post('job_requests', [JobController::class, 'jobRequests'])->name('job_requests');
     Route::post('/get_job_details', [JobController::class, 'getJobDetails']);
+    Route::post('/get_user_details', [UserController::class, 'getUserDetails']);
+    Route::post('/photo_action', [UserController::class, 'photoAction']);
 
 });
 

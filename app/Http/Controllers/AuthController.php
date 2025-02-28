@@ -129,7 +129,8 @@ class AuthController extends Controller
                 //ADD THE NEW USER
                 $details = [
                     'name'      => 'Guest user',
-                    'email'     => '',
+                    'email'     => null,
+
                     'password'  => '',
                     'mobile'    => $request->mobile_no,
                     'status'    => 0,
@@ -164,22 +165,23 @@ class AuthController extends Controller
     public function verify_otp(OtpVerifyRequest $request)
     {
         try {
-            $query  = User::where(['mobile' => $request->mobile_no, 'login_otp' => $request->otp]);
-            if($query->exists()) {
+            $query = User::where(['mobile' => $request->mobile_no, 'login_otp' => $request->otp]);
+    
+            if ($query->exists()) {
                 $user = $query->first();
-
-                //LOGIN USER
+    
+                // LOGIN USER
                 $credentials = ['mobile' => $request->mobile_no, 'password' => ''];
-                // return $token = auth('api')->attempt($credentials);
+    
                 if ($token = auth('api')->attempt($credentials)) {
                     $user = auth('api')->user();
                     $refresh_token = auth('api')->fromUser($user);
-
+    
                     return response()->json([
-                        'status'    => 200,
-                        'success'   => true,
-                        'message'   => 'OTP verified successfully',
-                        'user_exist'=> $user->status ? true : false,
+                        'status'        => 200,
+                        'success'       => true,
+                        'message'       => 'OTP verified successfully',
+                        'user_exist'    => $user->status ? true : false,
                         'access_token'  => $token,
                         'refresh_token' => $refresh_token,
                         'token_type'    => 'bearer',
@@ -195,29 +197,32 @@ class AuthController extends Controller
                             'usertype'      => $user->usertype
                         ]
                     ]);
-
-                    
                 }
-                return response()->json(['error' => 'Invalid user.'], 401);
-
-            } else {
+    
                 return response()->json([
-                    'status'    => 200,
-                    'success'   => true,
-                    'message'   => 'Invalid OTP'
-                ]);
-
-            }
+                    'status'  => 401,
+                    'success' => false,
+                    'message' => 'Invalid user.'
+                ], 401);
+            } 
+    
+            // Handle invalid OTP case with proper error message and status code
+            return response()->json([
+                'status'  => 400,
+                'success' => false,
+                'message' => 'Invalid OTP. Please enter a valid OTP.'
+            ], 400);
+    
         } catch (\Throwable $th) {
             return response()->json([
-                'success'       => false,
-                'message'       => 'Something went wrong!!!',
-                'exception'     => $th->getMessage(),
-                'code'          => $th->getCode(),
-            ]);
+                'success'   => false,
+                'message'   => 'Something went wrong!!!',
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ], 500);
         }
     }
-
+    
 
     //registration
     public function registration(Request $request)
@@ -238,6 +243,8 @@ class AuthController extends Controller
                 'name'      => $request->name,
                 'email'     => $request->email,
                 'location'  => $request->location,
+                'location_latitude'  => $request->location_latitude,
+                'location_longitude'  => $request->location_longitude,
                 'usertype'  => $request->user_type ?: 0,
                 'status'    => 1,
                 'updated_at'=> Carbon::now(),
@@ -270,7 +277,33 @@ class AuthController extends Controller
                     $serviceProviderDetails['created_at'] = Carbon::now();
                     ServiceProvider::create($serviceProviderDetails);
                 }
+                if ($request->hasFile('reg_document')) {
+                    $file = $request->file('reg_document');
+                    $filename = time() . '_' . $file->getClientOriginalName();
+                    $filePath = 'assets/images/' . $filename;
+                    $file->move(public_path('assets/images'), $filename);
+                
+                    // Store full URL
+                    $fullUrl = asset($filePath);
+                
+                    // Update reg_document in service provider record
+                    ServiceProvider::where('user_id', $user->id)->update(['reg_document' => $fullUrl]);
+                }
+                
             }
+
+
+             // ✅ Check image & verification images for usertype 0 or 2
+        $imageStatus = !is_null($user->image) ? 1 : 0;
+        $verificationImage1Status = !is_null($user->verification_image1) ? 1 : 0;
+        $verificationImage2Status = !is_null($user->verification_image2) ? 1 : 0;
+
+        // ✅ Check business image if usertype is 1
+        $businessImageStatus = 0;
+        if ($request->user_type == 1) {
+            $provider = ServiceProvider::where('user_id', $user->id)->first();
+            $businessImageStatus = ($provider && !is_null($provider->business_image)) ? 1 : 0;
+        }
     
             // Commit the transaction if both tables are updated successfully
             DB::commit();
@@ -279,7 +312,11 @@ class AuthController extends Controller
                 'status'          => 200,
                 'success'         => true,
                 'message'         => 'Details saved successfully.',
-                'is_normal_user'  => ($request->user_type == 0)
+                'is_normal_user'  => ($request->user_type == 0),
+                'image_status'           => $imageStatus,
+            'verification_image1'    => $verificationImage1Status,
+            'verification_image2'    => $verificationImage2Status,
+            'business_image_status'  => $businessImageStatus,
             ]);
     
         } catch (\Throwable $th) {
