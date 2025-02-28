@@ -176,6 +176,19 @@ class AuthController extends Controller
                 if ($token = auth('api')->attempt($credentials)) {
                     $user = auth('api')->user();
                     $refresh_token = auth('api')->fromUser($user);
+                    $verificationStatus = $user->verification_status;
+
+                     // ✅ Check image & verification images for usertype 0 or 2
+                $imageStatus = !is_null($user->image) ? 1 : 0;
+                $verificationImage1Status = !is_null($user->verification_image1) ? 1 : 0;
+                $verificationImage2Status = !is_null($user->verification_image2) ? 1 : 0;
+
+                // ✅ Check business image if usertype is 1
+                $businessImageStatus = 0;
+                if ($user->usertype == 1) {
+                    $provider = ServiceProvider::where('user_id', $user->id)->first();
+                    $businessImageStatus = ($provider && !is_null($provider->business_image)) ? 1 : 0;
+                }
     
                     return response()->json([
                         'status'        => 200,
@@ -194,8 +207,13 @@ class AuthController extends Controller
                             'status'        => $user->status,
                             'created_at'    => $user->created_at,
                             'updated_at'    => $user->updated_at,
-                            'usertype'      => $user->usertype
-                        ]
+                            'usertype'      => $user->usertype,
+                            'verification_status' => $verificationStatus
+                        ],
+                        'selfie_image'           => $imageStatus,
+                        'verification_image1'    => $verificationImage1Status,
+                        'verification_image2'    => $verificationImage2Status,
+                        'business_image_status'  => $businessImageStatus,
                     ]);
                 }
     
@@ -224,76 +242,92 @@ class AuthController extends Controller
     }
     
 
-    //registration
-    public function registration(Request $request)
-    {
-        Log::info('Registration API Hit');
-    
-        try {
-           
-            Log::info('Registration Input Data:', $request->all());
-    
-            $user = auth('api')->user(); 
-    
-          
-            DB::beginTransaction();
-    
-            // Common User Details
-            $userDetails = [
-                'name'      => $request->name,
-                'email'     => $request->email,
-                'location'  => $request->location,
-                'location_latitude'  => $request->location_latitude,
-                'location_longitude'  => $request->location_longitude,
-                'usertype'  => $request->user_type ?: 0,
-                'status'    => 1,
-                'updated_at'=> Carbon::now(),
+ // registration
+public function registration(Request $request)
+{
+    Log::info('Registration API Hit');
+
+    // Custom validation handling
+    $validator = Validator::make($request->all(), [
+        'user_type'           => 'required|in:0,1',
+        'name'               => 'required|string|max:255',
+        'email'              => 'required|email|max:255',
+        'location'           => 'required|string|max:255',
+        'location_latitude'  => 'required|numeric',
+        'location_longitude' => 'required|numeric',
+    ]);
+
+    // If validation fails, return error response
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation error',
+            'errors'  => $validator->errors(),
+        ], 422);
+    }
+
+    try {
+        Log::info('Registration Input Data:', $request->all());
+
+        $user = auth('api')->user();
+
+        DB::beginTransaction();
+
+        // Common User Details
+        $userDetails = [
+            'name'      => $request->name,
+            'email'     => $request->email,
+            'location'  => $request->location,
+            'location_latitude'  => $request->location_latitude,
+            'location_longitude'  => $request->location_longitude,
+            'usertype'  => $request->user_type ?: 0,
+            'status'    => 1,
+            'updated_at'=> Carbon::now(),
+        ];
+
+        // Update user table
+        User::where('id', $user->id)->update($userDetails);
+
+        if ($request->user_type == 1) {
+            $serviceProviderDetails = [
+                'category_id'      => $request->category,
+                'subcategory_id'   => $request->subcategory,
+                'business_name'    => $request->business_name,
+                'business_phone'   => $request->business_phone,
+                'business_email'   => $request->business_email,
+                'website'          => $request->website,
+                'gst_number'       => $request->gst,
+                'updated_at'       => Carbon::now(),
             ];
-    
-            // Update user table
-            User::where('id', $user->id)->update($userDetails);
-    
-            if ($request->user_type == 1) {
-                $serviceProviderDetails = [
-                    'category_id'      => $request->category,
-                    'subcategory_id'   => $request->subcategory,
-                    'business_name'    => $request->business_name,
-                    'business_phone'   => $request->business_phone,
-                    'business_email'   => $request->business_email,
-                    'website'          => $request->website,
-                    'gst_number'       => $request->gst,
-                    'updated_at'       => Carbon::now(),
-                ];
-    
-                // Check if user already exists in `service_providers`
-                $existingProvider = ServiceProvider::where('user_id', $user->id)->first();
-    
-                if ($existingProvider) {
-                    // Update existing record
-                    $existingProvider->update($serviceProviderDetails);
-                } else {
-                    // Insert new record
-                    $serviceProviderDetails['user_id'] = $user->id;
-                    $serviceProviderDetails['created_at'] = Carbon::now();
-                    ServiceProvider::create($serviceProviderDetails);
-                }
-                if ($request->hasFile('reg_document')) {
-                    $file = $request->file('reg_document');
-                    $filename = time() . '_' . $file->getClientOriginalName();
-                    $filePath = 'assets/images/' . $filename;
-                    $file->move(public_path('assets/images'), $filename);
-                
-                    // Store full URL
-                    $fullUrl = asset($filePath);
-                
-                    // Update reg_document in service provider record
-                    ServiceProvider::where('user_id', $user->id)->update(['reg_document' => $fullUrl]);
-                }
-                
+
+            // Check if user already exists in `service_providers`
+            $existingProvider = ServiceProvider::where('user_id', $user->id)->first();
+
+            if ($existingProvider) {
+                // Update existing record
+                $existingProvider->update($serviceProviderDetails);
+            } else {
+                // Insert new record
+                $serviceProviderDetails['user_id'] = $user->id;
+                $serviceProviderDetails['created_at'] = Carbon::now();
+                ServiceProvider::create($serviceProviderDetails);
             }
 
+            if ($request->hasFile('reg_document')) {
+                $file = $request->file('reg_document');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $filePath = 'assets/images/' . $filename;
+                $file->move(public_path('assets/images'), $filename);
 
-             // ✅ Check image & verification images for usertype 0 or 2
+                // Store full URL
+                $fullUrl = asset($filePath);
+
+                // Update reg_document in service provider record
+                ServiceProvider::where('user_id', $user->id)->update(['reg_document' => $fullUrl]);
+            }
+        }
+
+        // ✅ Check image & verification images for usertype 0 or 2
         $imageStatus = !is_null($user->image) ? 1 : 0;
         $verificationImage1Status = !is_null($user->verification_image1) ? 1 : 0;
         $verificationImage2Status = !is_null($user->verification_image2) ? 1 : 0;
@@ -304,38 +338,39 @@ class AuthController extends Controller
             $provider = ServiceProvider::where('user_id', $user->id)->first();
             $businessImageStatus = ($provider && !is_null($provider->business_image)) ? 1 : 0;
         }
-    
-            // Commit the transaction if both tables are updated successfully
-            DB::commit();
-    
-            return response()->json([
-                'status'          => 200,
-                'success'         => true,
-                'message'         => 'Details saved successfully.',
-                'is_normal_user'  => ($request->user_type == 0),
-                'image_status'           => $imageStatus,
-            'verification_image1'    => $verificationImage1Status,
-            'verification_image2'    => $verificationImage2Status,
-            'business_image_status'  => $businessImageStatus,
-            ]);
-    
-        } catch (\Throwable $th) {
-            DB::rollBack(); // Rollback transaction if any error occurs
-    
-            Log::error('Registration Error:', [
-                'exception' => $th->getMessage(),
-                'code'      => $th->getCode(),
-            ]);
-    
-            return response()->json([
-                'success'   => false,
-                'message'   => 'Something went wrong!!!',
-                'exception' => $th->getMessage(),
-                'code'      => $th->getCode(),
-            ]);
-        }
+
+        // Commit the transaction if both tables are updated successfully
+        DB::commit();
+
+        return response()->json([
+            'status'          => 200,
+            'success'         => true,
+            'message'         => 'Details saved successfully.',
+            'is_normal_user'  => ($request->user_type == 0),
+            'selfie_image'    => $imageStatus,
+            'verification_image1' => $verificationImage1Status,
+            'verification_image2' => $verificationImage2Status,
+            'business_image_status' => $businessImageStatus,
+        ]);
+
+    } catch (\Throwable $th) {
+        DB::rollBack(); // Rollback transaction if any error occurs
+
+        Log::error('Registration Error:', [
+            'exception' => $th->getMessage(),
+            'code'      => $th->getCode(),
+        ]);
+
+        return response()->json([
+            'success'   => false,
+            'message'   => 'Something went wrong!!!',
+            'exception' => $th->getMessage(),
+            'code'      => $th->getCode(),
+        ]);
     }
-    
+}
+
+
 
     public function getFirstAdmin()
     {

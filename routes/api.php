@@ -24,17 +24,17 @@ Route::group([
     Route::post('register', [AuthController::class, 'registration'])->middleware('auth:api');
     Route::post('job_requests', [JobController::class, 'jobRequests'])->name('job_requests');
     Route::post('/get_job_details', [JobController::class, 'getJobDetails']);
-    Route::post('/get_user_details', [UserController::class, 'getUserDetails']);
+    Route::get('/get_user_details', [UserController::class, 'getUserDetails']);
     Route::post('/photo_action', [UserController::class, 'photoAction']);
 
 });
 
 Route::get('login', [AuthController::class, 'user_mobile_validate'])->name('login');
 Route::get('locations', [AuthController::class, 'locations']);
-Route::post('get_ads', [AdController::class, 'getAllAds']);
-Route::post('get_plans', [PlanController::class, 'index']); 
-Route::post('get_categories', [CategoryController::class, 'index']);
-Route::post('get_contact_details', [AuthController::class, 'getFirstAdmin']);
+Route::get('get_ads', [AdController::class, 'getAllAds']);
+Route::get('get_plans', [PlanController::class, 'index']); 
+Route::get('get_categories', [CategoryController::class, 'index']);
+Route::get('get_contact_details', [AuthController::class, 'getFirstAdmin']);
 
 
 

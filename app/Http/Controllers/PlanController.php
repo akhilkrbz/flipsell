@@ -12,7 +12,10 @@ class PlanController extends Controller
         return [
             'id' => $plan->id,
             'name' => $plan->plan_name,
+            'description' => $plan->description,
             'price' => $plan->price,
+            'symbol' => $plan->symbol,
+            'currency' => $plan->currency,
             'month_no' => $plan->month_no,
             'per_month_cost' => ($plan->month_no > 0) ? round($plan->price / $plan->month_no, 2) : 0, // Prevent division by zero
         ];

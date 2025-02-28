@@ -12,6 +12,8 @@ class Plan extends Model
         'plan_name',
         'month_no',
         'price',
+        'symbol',
+        'currency',
         'description', // Added description as fillable field
     ];
     protected $dates = ['deleted_at'];
