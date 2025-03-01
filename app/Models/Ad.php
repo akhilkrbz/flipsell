@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Ad extends Model
 {
     use HasFactory, SoftDeletes;
-    protected $fillable = ['user_id', 'image', 'link'];
+    protected $fillable = ['user_id', 'image', 'link','image1', 'link1','image2', 'link2','ad_set'];
 
     public function user()
     {

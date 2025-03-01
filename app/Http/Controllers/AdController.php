@@ -11,26 +11,33 @@ class AdController extends Controller
     {
         // Get all records from the ads table
         $ads = Ad::all();
-
-        // Transform each ad to change the keys and include id, image, and link
-        $ads = $ads->map(function($ad) {
+    
+        // Group ads by 'add_set'
+        $groupedAds = $ads->groupBy('add_set');
+    
+        // Transform the grouped ads to the desired structure
+        $formattedAds = $groupedAds->mapWithKeys(function ($ads, $addSet) {
             return [
-                'id' => $ad->id, 
-                'image1' => $ad->image,  // Example of image column if needed
-                'link2' => $ad->link,         // Include the ad ID
-                'image2' => $ad->image1,
-                'link2' => $ad->link1,
-                'image3' => $ad->image2,
-                'link3' => $ad->link2,
-                 // Example of link column if needed
+                $addSet => $ads->flatMap(function ($ad) {
+                    return [
+                        ['image1' => $ad->image, 'link1' => $ad->link],
+                        ['image2' => $ad->image1, 'link2' => $ad->link1],
+                        ['image3' => $ad->image2, 'link3' => $ad->link2]
+                    ];
+                })->values() // Reset keys for each ad set
             ];
         });
-
-        // Return the response with a success message and the ads data
+    
+        // Return the response with a success message and the formatted ads data
         return response()->json([
-            'success' => "success",       // Success flag
-            'message' => 'Ads fetched successfully.', // Success message
-            'data' => $ads           // The transformed ads data
+            'success' => "success",
+            'message' => 'Ads fetched successfully.',
+            'data' => $formattedAds
         ]);
     }
+    
+
 }
+
+
+
