@@ -26,6 +26,8 @@ Route::group([
     Route::post('/get_job_details', [JobController::class, 'getJobDetails']);
     Route::get('/get_user_details', [UserController::class, 'getUserDetails']);
     Route::post('/photo_action', [UserController::class, 'photoAction']);
+    Route::post('profile_update', [AuthController::class, 'profile_update'])->name('profile_update');
+
 
 });
 

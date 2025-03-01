@@ -54,6 +54,8 @@ class JobRequestsController extends Controller
                 'flexible'          => $request->flexible,
                 'looking_for'       => $request->looking_for,
                 'location'          => $request->location,
+                'location_langitude'          => $request->location_langitude,
+                'location_longitude'          => $request->location_longitude,
                 'tags'              => $request->tags,
                 'distance_limit'    => $request->distance_limit,
                 'user_id'           => $user->id,

@@ -14,6 +14,8 @@ class JobRequest extends Model
         'flexible',
         'looking_for',
         'location',
+        'location_longitude',
+        'location_langitude',
         'tags',
         'distance_limit',
         'user_id',

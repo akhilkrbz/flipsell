@@ -389,4 +389,115 @@ public function registration(Request $request)
             'data' => $admin
         ], 200);
     }
+
+
+
+    public function profile_update(Request $request)
+{
+    try {
+        // Get authenticated user
+        $user = auth('api')->user();
+
+        if (!$user) {
+            Log::error('Unauthorized access attempt.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        // Define validation rules for the users table
+        $userRules = [
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $user->id,
+            'location' => 'sometimes|string|max:255',
+            'location_latitude' => 'sometimes',
+            'location_longitude' => 'sometimes',
+            'address' => 'sometimes|string|max:500',
+            'image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'verification_image1' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'verification_image2' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ];
+
+        // Define validation rules for the service_providers table if usertype is 1
+        $providerRules = [];
+        if ($user->usertype == 1) {
+            $providerRules = [
+                'business_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'reg_document' => 'sometimes|file|mimes:pdf,doc,docx|max:2048',
+                'gst_number' => 'sometimes|string|max:20',
+                'website' => 'sometimes|url',
+                'category_id' => 'sometimes',
+                'subcategory_id' => 'sometimes',
+            ];
+        }
+
+        // Merge rules and validate the request
+        $validatedData = $request->validate(array_merge($userRules, $providerRules));
+
+        // Log validated data
+        Log::info('Validated data:', $validatedData);
+
+        // Handle file uploads
+        $filePaths = [];
+        foreach (['image', 'verification_image1', 'verification_image2', 'business_image', 'reg_document'] as $field) {
+            if ($request->hasFile($field)) {
+                $file = $request->file($field);
+                $path = 'assets/images/' . $field;
+                $fileName = time() . '_' . $file->getClientOriginalName();
+                $file->move(public_path($path), $fileName);
+                $filePaths[$field] = asset($path . '/' . $fileName);
+                Log::info("Uploaded file for $field: " . $filePaths[$field]);
+            }
+        }
+
+        // Update user profile in the users table
+        $userData = array_intersect_key($validatedData, array_flip(array_keys($userRules)));
+        $userData = array_merge($userData, array_intersect_key($filePaths, $userData));
+        DB::table('users')->where('id', $user->id)->update($userData);
+        Log::info('User profile updated:', $userData);
+
+        // Insert or update service provider profile if usertype is 1
+        if ($user->usertype == 1) {
+            $providerData = array_intersect_key($validatedData, array_flip(array_keys($providerRules)));
+            $providerFilePaths = array_intersect_key($filePaths, $providerData);
+            $serviceProviderData = array_merge($providerData, $providerFilePaths);
+            $serviceProviderData['user_id'] = $user->id; // Add user ID to associate
+
+            // Check if service provider entry exists
+            $existingProvider = DB::table('service_providers')->where('user_id', $user->id)->first();
+
+            if ($existingProvider) {
+                // Update if exists
+                DB::table('service_providers')->where('user_id', $user->id)->update($serviceProviderData);
+                Log::info('Service provider profile updated:', $serviceProviderData);
+            } else {
+                // Insert if not exists
+                DB::table('service_providers')->insert($serviceProviderData);
+                Log::info('Service provider profile created:', $serviceProviderData);
+            }
+        }
+
+        return response()->json([
+            'status' => 200,
+            'success' => true,
+            'message' => 'Profile updated successfully.',
+            'data' => array_merge($userData, $serviceProviderData ?? [])
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Error in profile_update:', [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+
+        return response()->json([
+            'status' => 500,
+            'success' => false,
+            'message' => 'An error occurred while updating the profile.',
+            
+        ], 500);
+    }
+}
+
 }
