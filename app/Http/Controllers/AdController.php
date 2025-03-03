@@ -20,9 +20,9 @@ class AdController extends Controller
             return [
                 $addSet => $ads->flatMap(function ($ad) {
                     return [
-                        ['image1' => $ad->image, 'link1' => $ad->link],
-                        ['image2' => $ad->image1, 'link2' => $ad->link1],
-                        ['image3' => $ad->image2, 'link3' => $ad->link2]
+                        ['image' => $ad->image, 'link' => $ad->link],
+                        ['image' => $ad->image1, 'link' => $ad->link1],
+                        ['image' => $ad->image2, 'link' => $ad->link2]
                     ];
                 })->values() // Reset keys for each ad set
             ];
@@ -35,6 +35,7 @@ class AdController extends Controller
             'data' => $formattedAds
         ]);
     }
+    
     
 
 }

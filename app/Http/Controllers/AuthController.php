@@ -129,7 +129,7 @@ class AuthController extends Controller
                 //ADD THE NEW USER
                 $details = [
                     'name'      => 'Guest user',
-                    'email'     => '',
+                    'email'     => null,
 
                     'password'  => '',
                     'mobile'    => $request->mobile_no,
@@ -177,18 +177,28 @@ class AuthController extends Controller
                     $user = auth('api')->user();
                     $refresh_token = auth('api')->fromUser($user);
                     $verificationStatus = $user->verification_status;
-
-                     // ✅ Check image & verification images for usertype 0 or 2
-                $imageStatus = !is_null($user->image) ? 1 : 0;
-                $verificationImage1Status = !is_null($user->verification_image1) ? 1 : 0;
-                $verificationImage2Status = !is_null($user->verification_image2) ? 1 : 0;
-
-                // ✅ Check business image if usertype is 1
-                $businessImageStatus = 0;
-                if ($user->usertype == 1) {
-                    $provider = ServiceProvider::where('user_id', $user->id)->first();
-                    $businessImageStatus = ($provider && !is_null($provider->business_image)) ? 1 : 0;
-                }
+    
+                    // ✅ Check image & verification images for usertype 0 or 2
+                    $imageStatus = !is_null($user->image) ? true : false;
+                    $verificationImage1Status = !is_null($user->verification_image1) ? true : false;
+                    $verificationImage2Status = !is_null($user->verification_image2) ? true : false;
+    
+                    // ✅ Check business image and reg_document if usertype is 1
+                    $businessImageStatus = false;
+                    $regDocumentStatus = false;
+                    if ($user->usertype == 1) {
+                        $provider = ServiceProvider::where('user_id', $user->id)->first();
+                        $businessImageStatus = ($provider && !is_null($provider->business_image)) ? true : false;
+                        $regDocumentStatus = ($provider && !is_null($provider->reg_document)) ? true : false;
+                    }
+    
+                    // ✅ Determine image_verification_completed status as true or false
+                    $imageVerificationCompleted = false;
+                    if ($user->usertype == 0) {
+                        $imageVerificationCompleted = ($imageStatus && $verificationImage1Status && $verificationImage2Status) ? true : false;
+                    } elseif ($user->usertype == 1) {
+                        $imageVerificationCompleted = ($imageStatus && $verificationImage1Status && $verificationImage2Status && $regDocumentStatus && $businessImageStatus) ? true : false;
+                    }
     
                     return response()->json([
                         'status'        => 200,
@@ -200,20 +210,21 @@ class AuthController extends Controller
                         'token_type'    => 'bearer',
                         'expires_in'    => auth('api')->factory()->getTTL() * 120,
                         'user'          => [
-                            'id'            => $user->id,
-                            'name'          => $user->name,
-                            'email'         => $user->email,
-                            'mobile'        => $user->mobile,
-                            'status'        => $user->status,
-                            'created_at'    => $user->created_at,
-                            'updated_at'    => $user->updated_at,
-                            'usertype'      => $user->usertype,
-                            'verification_status' => $verificationStatus
+                            'id'                    => $user->id,
+                            'name'                  => $user->name,
+                            'email'                 => $user->email,
+                            'mobile'                => $user->mobile,
+                            'status'                => $user->status,
+                            'created_at'            => $user->created_at,
+                            'updated_at'            => $user->updated_at,
+                            'usertype'              => $user->usertype,
+                            'verification_status'   => $verificationStatus
                         ],
-                        'selfie_image'           => $imageStatus,
-                        'verification_image1'    => $verificationImage1Status,
-                        'verification_image2'    => $verificationImage2Status,
-                        'business_image_status'  => $businessImageStatus,
+                        'image_verification_completed' => $imageVerificationCompleted,
+                        'selfie_image'                => $imageStatus,
+                        'verification_image1'         => $verificationImage1Status,
+                        'verification_image2'         => $verificationImage2Status,
+                        'business_image_status'       => $businessImageStatus,
                     ]);
                 }
     
@@ -222,7 +233,7 @@ class AuthController extends Controller
                     'success' => false,
                     'message' => 'Invalid user.'
                 ], 401);
-            } 
+            }
     
             // Handle invalid OTP case with proper error message and status code
             return response()->json([
@@ -240,6 +251,7 @@ class AuthController extends Controller
             ], 500);
         }
     }
+    
     
 
  // registration
