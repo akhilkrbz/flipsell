@@ -135,6 +135,7 @@ class AuthController extends Controller
                     'mobile'    => $request->mobile_no,
                     'status'    => 0,
                     'usertype'  => 0,
+                    'country_id' => $request->country_id, 
                     'login_otp' => $otp,
                     'created_at' => Carbon::now(),
                     'updated_at' => Carbon::now(),
