@@ -41,3 +41,4 @@ Route::get('get_contact_details', [AuthController::class, 'getFirstAdmin']);
 
 
 Route::post('service_request', [JobRequestsController::class, 'RequestService']);
+Route::post('request_list', [JobRequestsController::class, 'requestList']);

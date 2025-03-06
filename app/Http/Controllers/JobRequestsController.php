@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\JobRequest;
+use App\Models\ServiceProvider;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +84,95 @@ class JobRequestsController extends Controller
             ]);
 
 
+        } catch (\Throwable $th) {
+    
+            Log::error('Error:', [
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+    
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Something went wrong!!!',
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+        }
+    }
+
+
+    public function requestList(Request $request)
+    {
+        Log::info('Job request list');
+    
+        try {
+            if($request->type == 1) {       //All requests
+                $user = auth('api')->user();
+
+                // $user_service_details = ServiceProvider::where('user_id', $user->id)->first();
+                // $user_subcat_ids = $user_service_details->subcategory_id;
+
+                // $user_latitude = $user->location_latitude;
+                // $user_longitude = $user->location_longitude;
+
+                // $jobRequests = DB::table('job_requests as jr')
+                // ->select('jr.*', DB::raw('(6371 * acos(cos(radians(jr.location_langitude)) 
+                //         * cos(radians('.$user_latitude.')) 
+                //         * cos(radians('.$user_longitude.') - radians(jr.location_longitude)) 
+                //         + sin(radians(jr.location_langitude)) 
+                //         * sin(radians('.$user_latitude.')))) AS distance'))
+                // ->whereRaw('(6371 * acos(cos(radians(jr.location_langitude)) 
+                //         * cos(radians('.$user_latitude.')) 
+                //         * cos(radians('.$user_longitude.') - radians(jr.location_longitude)) 
+                //         + sin(radians(jr.location_langitude)) 
+                //         * sin(radians('.$user_latitude.')))) <= jr.distance_limit')
+                // ->whereIn('jr.subcategory_id', $user_subcat_ids)
+                // ->where('jr.accepted_time', null)
+                // ->get();
+
+
+                $user_service_details = ServiceProvider::where('user_id', $user->id)->first();
+                $user_subcat_ids = $user_service_details->subcategory_id;
+
+                $user_latitude = $user->location_latitude;
+                $user_longitude = $user->location_longitude;
+
+                // Base query
+                $jobRequests = DB::table('job_requests as jr')
+                    ->select('jr.*', DB::raw('(6371 * acos(cos(radians(jr.location_langitude)) 
+                            * cos(radians('.$user_latitude.')) 
+                            * cos(radians('.$user_longitude.') - radians(jr.location_longitude)) 
+                            + sin(radians(jr.location_langitude)) 
+                            * sin(radians('.$user_latitude.')))) AS distance'))
+                    ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
+                    ->where('jr.updated_at', '>=', Carbon::now())
+                    ->where('jr.accepted_time', null);
+
+                // Apply distance condition only if distance_limit > 0
+                $jobRequests = $jobRequests->where(function ($query) use ($user_latitude, $user_longitude) {
+                    $query->where('jr.distance_limit', 0)
+                        ->orWhereRaw('(6371 * acos(cos(radians(jr.location_langitude)) 
+                            * cos(radians(?)) 
+                            * cos(radians(?) - radians(jr.location_longitude)) 
+                            + sin(radians(jr.location_langitude)) 
+                            * sin(radians(?)))) <= jr.distance_limit', 
+                            [$user_latitude, $user_longitude, $user_latitude]);
+                });
+
+                // Execute query
+                $jobRequests = $jobRequests->get();
+
+                return $jobRequests;
+
+            } else if($request->type == 2) {    //Accepted requests
+                // $job_reqs = JobRequest::where('accepted_time', '!=', null)->
+            } else {
+                return response()->json([
+                    'status'    => 200,
+                    'success'   => false,
+                    'message'   => 'Invalid type.'
+                ]);
+            }
         } catch (\Throwable $th) {
     
             Log::error('Error:', [
