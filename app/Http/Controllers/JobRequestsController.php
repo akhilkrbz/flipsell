@@ -132,7 +132,7 @@ class JobRequestsController extends Controller
 
 
                 $user_service_details = ServiceProvider::where('user_id', $user->id)->first();
-                $user_subcat_ids = $user_service_details->subcategory_id;
+                $user_subcat_ids = json_decode($user_service_details->subcategory_id, true);
 
                 $user_latitude = $user->location_latitude;
                 $user_longitude = $user->location_longitude;
@@ -145,7 +145,7 @@ class JobRequestsController extends Controller
                             + sin(radians(jr.location_langitude)) 
                             * sin(radians('.$user_latitude.')))) AS distance'))
                     ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
-                    ->where('jr.updated_at', '>=', Carbon::now())
+                    ->where('jr.updated_at', '>=', date('Y-m-d'))
                     ->where('jr.accepted_time', null);
 
                 // Apply distance condition only if distance_limit > 0
@@ -161,6 +161,8 @@ class JobRequestsController extends Controller
 
                 // Execute query
                 $jobRequests = $jobRequests->get();
+
+                // return $jobRequests;
 
                 return response()->json([
                     'status'    => 200,
