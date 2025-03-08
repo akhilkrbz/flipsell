@@ -162,7 +162,12 @@ class JobRequestsController extends Controller
                 // Execute query
                 $jobRequests = $jobRequests->get();
 
-                return $jobRequests;
+                return response()->json([
+                    'status'    => 200,
+                    'success'   => true,
+                    'data'      => $jobRequests
+                ]);
+
 
             } else if($request->type == 2) {    //Accepted requests
                 // $job_reqs = JobRequest::where('accepted_time', '!=', null)->
