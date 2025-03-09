@@ -145,7 +145,7 @@ class JobRequestsController extends Controller
                                 + sin(radians(jr.location_langitude)) 
                                 * sin(radians('.$user_latitude.')))) AS distance'))
                         ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
-                        ->where('jr.updated_at', '>=', date('Y-m-d'))
+                        // ->where('jr.updated_at', '>=', date('Y-m-d'))
                         ->where('jr.accepted_time', null);
     
                     // Apply distance condition only if distance_limit > 0
