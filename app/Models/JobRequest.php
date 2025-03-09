@@ -33,4 +33,20 @@ class JobRequest extends Model
         'created_at',
         'updated_at',
     ];
+
+
+    public function scopeUser($query, $user_id)
+    {
+        $query->where('user_id', $user_id);
+    }
+
+    public function scopePending($query)
+    {
+        $query->where('accepted_time', null);
+    }
+
+    public function scopeAccepted($query)
+    {
+        $query->where('accepted_time', '!=', null);
+    }
 }

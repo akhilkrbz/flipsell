@@ -203,4 +203,184 @@ class JobRequestsController extends Controller
             ]);
         }
     }
+
+
+    //userRequestList
+    public function userRequestList(Request $request)
+    {
+        Log::info('User Job request list');
+    
+        try {
+            $user = auth('api')->user();
+            if($request->type == 1) {       //Pending
+                $job_reqs = JobRequest::User($user->id)->Pending()->get();
+
+                return response()->json([
+                    'status'    => 200,
+                    'success'   => true,
+                    'data'      => $job_reqs
+                ]);
+
+            } else if($request->type == 2) {            //Accepted
+                $job_reqs = JobRequest::User($user->id)->Accepted()->get();
+
+                return response()->json([
+                    'status'    => 200,
+                    'success'   => true,
+                    'data'      => $job_reqs
+                ]);
+            }
+
+        } catch (\Throwable $th) {
+
+            Log::error('Error:', [
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+    
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Something went wrong!!!',
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+        }
+    }
+
+    //jobRequestDetails
+    public function jobRequestDetails(Request $request)
+    {
+        Log::info('User Job request list');
+    
+        try {
+
+            $user = auth('api')->user();
+
+            $job_data = JobRequest::where('id', $request->request_id)->first();
+
+            return response()->json([
+                'status'    => 200,
+                'success'   => true,
+                'data'      => $job_data
+            ]);
+
+        } catch (\Throwable $th) {
+
+            Log::error('Error:', [
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+    
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Something went wrong!!!',
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+        }
+    }
+
+
+    public function updateRequestService(Request $request)
+    {
+        Log::info('Registration API Hit');
+    
+        try {
+
+            $user = auth('api')->user(); 
+
+            $job_data = JobRequest::where('id', $request->request_id);
+            if($job_data->exists()) {
+                $job_req = $job_data->first();
+
+                $image_1 = $job_req->image_1;
+                $image_2 = $job_req->image_2;
+                $image_3 = $job_req->image_3;
+    
+                if($request->hasFile('image_1')){
+                    $c = $request->file('image_1');
+                    $filename = uniqid() . '.' . $c->getClientOriginalExtension();
+                    $destinationPath = public_path('/uploads/images');
+                    $c->move($destinationPath, $filename);
+                    $image_1 = '/uploads/images/' . $filename;
+                }
+    
+                if($request->hasFile('image_2')){
+                    $c = $request->file('image_2');
+                    $filename = uniqid() . '.' . $c->getClientOriginalExtension();
+                    $destinationPath = public_path('/uploads/images');
+                    $c->move($destinationPath, $filename);
+                    $image_2 = '/uploads/images/' . $filename;
+                }
+    
+                if($request->hasFile('image_3')){
+                    $c = $request->file('image_3');
+                    $filename = uniqid() . '.' . $c->getClientOriginalExtension();
+                    $destinationPath = public_path('/uploads/images');
+                    $c->move($destinationPath, $filename);
+                    $image_3 = '/uploads/images/' . $filename;
+                }
+    
+                $details = [
+                    'budget'            => $request->budget,
+                    'category_id'       => $request->category_id,
+                    'subcategory_id'    => $request->subcategory_id,
+                    'description'       => $request->description,
+                    'flexible'          => $request->flexible,
+                    'looking_for'       => $request->looking_for,
+                    'location'          => $request->location,
+                    'location_langitude'          => $request->location_langitude,
+                    'location_longitude'          => $request->location_longitude,
+                    'tags'              => $request->tags,
+                    'distance_limit'    => $request->distance_limit,
+                    // 'user_id'           => $user->id,
+                    'status'            => 0,
+                    'business_id'       => $request->business_id,
+                    'job_date'          => $request->job_date ? Carbon::createFromFormat('d-m-Y H:i:s', $request->job_date)->format('Y-m-d H:i:s') : '',
+                    'job_date_flexible' => $request->job_date_flexible,
+                    'address'           => $request->address,
+                    'image_1'           => $image_1,
+                    'image_2'           => $image_2,
+                    'image_3'           => $image_3,
+                    'full_screen_image' => $request->full_screen_image,
+                    'connect_type'      => $request->connect_type,
+                    // 'created_at'        => Carbon::now(),
+                    'updated_at'        => Carbon::now()
+                ];
+
+                DB::table('job_requests')->where('id', $request->request_id)->update($details);
+                
+                return response()->json([
+                    'status'    => 200,
+                    'success'   => true,
+                    'message'   => 'Service request updated successfully.'
+                ]);
+
+
+            } else {
+                return response()->json([
+                    'status'    => 200,
+                    'success'   => false,
+                    'message'   => 'Service Request not found.'
+                ]);
+            }
+
+            
+
+
+        } catch (\Throwable $th) {
+    
+            Log::error('Error:', [
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+    
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Something went wrong!!!',
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+        }
+    }
 }
