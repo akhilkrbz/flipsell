@@ -38,7 +38,9 @@ class UserController extends Controller
             'verification_image2' => $user->verification_image2,
             'status' => $user->status,
             'verification_status' => $user->verification_status,
-            'location' => $country_name,
+            'location_langitude' => $user->location_langitude,
+            'location_longitude' => $user->location_longitude,
+            'location' => $user->location,
             'usertype' => $user->usertype
         ];
     
