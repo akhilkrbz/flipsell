@@ -10,64 +10,55 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Location;
 use App\Models\JobRequest;
+use App\Models\RequestsUpdate;
+
 
 
 class JobController extends Controller
 {
     public function jobRequests(Request $request)
-{
-    Log::info('Job Request API Hit', $request->all());
-
-    try {
-        // Validate the request
-        $request->validate([
-            'job_id' => 'required|integer|exists:job_requests,id',
-            'status' => 'required|in:0,1,2', // 0 = Rejected, 1 = Pending, 2 = Accepted
-        ]);
-
-        // Get authenticated user
-        $user = auth('api')->user();
-
-        // Find the job request
-        $jobRequest = JobRequest::where('id', $request->job_id)->first();
-
-        if (!$jobRequest) {
+    {
+        Log::info('Job Request API Hit', $request->all());
+    
+        try {
+            // Validate the request
+            $request->validate([
+                'job_id' => 'required|integer|exists:job_requests,id',
+                'status' => 'required|in:0,1,2', // 0 = Rejected, 1 = Pending, 2 = Accepted
+            ]);
+    
+            // Get authenticated user
+            $user = auth('api')->user();
+    
+            // Prepare data to insert into requests_update table
+            $data = [
+                'job_id' => $request->job_id,
+                'business_id' => $user->id,
+                'status' => $request->status,
+                'accepted_time' => $request->status == 1 ? Carbon::now() : null,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ];
+    
+            // Insert data into requests_update table
+            $requestUpdate = RequestsUpdate::create($data);
+    
+            return response()->json([
+                'success' => true,
+                'message' => 'Job request inserted successfully.',
+                'request_update' => $requestUpdate
+            ]);
+    
+        } catch (\Throwable $th) {
+            Log::error('Job Request Error:', ['exception' => $th->getMessage()]);
+    
             return response()->json([
                 'success' => false,
-                'message' => 'Job request not found.'
-            ], 404);
+                'message' => 'Something went wrong!',
+                'exception' => $th->getMessage()
+            ], 500);
         }
-
-        // Update the job request status
-        $jobRequest->status = $request->status;
-        $jobRequest->business_id = $user->id; // Assign business_id to authenticated user
-
-        // If status is accepted (2), set accepted_time
-        if ($request->status == 2) {
-            $jobRequest->accepted_time = Carbon::now();
-        }
-
-        $jobRequest->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Job request updated successfully.',
-            'job_request' => $jobRequest
-        ]);
-
-    } catch (\Throwable $th) {
-        Log::error('Job Request Error:', ['exception' => $th->getMessage()]);
-
-        return response()->json([
-            'success' => false,
-            'message' => 'Something went wrong!',
-            'exception' => $th->getMessage()
-        ], 500);
     }
-
-
-    
-}
 
 
 public function getJobDetails(Request $request)
