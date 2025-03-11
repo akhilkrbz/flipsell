@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\JobRequest;
+use App\Models\RequestsUpdate;
 use App\Models\ServiceProvider;
 use App\Models\User;
 use Carbon\Carbon;
@@ -106,8 +107,8 @@ class JobRequestsController extends Controller
         Log::info('Job request list');
     
         try {
+            $user = auth('api')->user();
             if($request->type == 1) {       //All requests
-                $user = auth('api')->user();
 
                 // $user_service_details = ServiceProvider::where('user_id', $user->id)->first();
                 // $user_subcat_ids = $user_service_details->subcategory_id;
@@ -180,7 +181,18 @@ class JobRequestsController extends Controller
 
 
             } else if($request->type == 2) {    //Accepted requests
-                // $job_reqs = JobRequest::where('accepted_time', '!=', null)->
+                // return $job_reqs = RequestsUpdate::where(['business_id' => $user->id, 'status' => 1])->with('accepted_job_request')->get();
+                $job_reqs = JobRequest::whereHas('request_update', function($q1) use ($user) {
+                    return $q1->where(['status' => 1, 'business_id' => $user->id]);
+                })->get();
+
+                return response()->json([
+                    'status'    => 200,
+                    'success'   => true,
+                    'data'      => $job_reqs
+                ]);
+
+
             } else {
                 return response()->json([
                     'status'    => 200,

@@ -49,4 +49,9 @@ class JobRequest extends Model
     {
         $query->where('accepted_time', '!=', null);
     }
+
+    public function request_update()
+    {
+        return $this->hasMany(RequestsUpdate::class, 'job_id', 'id');
+    }
 }
