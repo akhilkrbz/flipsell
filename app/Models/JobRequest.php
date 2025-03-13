@@ -54,4 +54,19 @@ class JobRequest extends Model
     {
         return $this->hasMany(RequestsUpdate::class, 'job_id', 'id');
     }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id', 'id');
+    }
+
+    public function sub_category()
+    {
+        return $this->belongsTo(Category::class, 'subcategory_id', 'id');
+    }
+
+    public function user_data()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
 }

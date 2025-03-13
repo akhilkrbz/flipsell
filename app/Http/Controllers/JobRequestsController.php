@@ -184,7 +184,7 @@ class JobRequestsController extends Controller
                 // return $job_reqs = RequestsUpdate::where(['business_id' => $user->id, 'status' => 1])->with('accepted_job_request')->get();
                 $job_reqs = JobRequest::whereHas('request_update', function($q1) use ($user) {
                     return $q1->where(['status' => 1, 'business_id' => $user->id]);
-                })->get();
+                })->with(['category', 'sub_category', 'user_data'])->get();
 
                 return response()->json([
                     'status'    => 200,
@@ -268,7 +268,7 @@ class JobRequestsController extends Controller
 
             $user = auth('api')->user();
 
-            $job_data = JobRequest::where('id', $request->request_id)->first();
+            $job_data = JobRequest::where('id', $request->request_id)->with(['category', 'sub_category', 'user_data'])->first();
 
             return response()->json([
                 'status'    => 200,
