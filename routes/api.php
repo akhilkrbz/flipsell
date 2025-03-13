@@ -9,6 +9,7 @@ use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\JobRequestsController;
+use App\Http\Controllers\NotificationPreferenceController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -27,6 +28,9 @@ Route::group([
     Route::get('/get_user_details', [UserController::class, 'getUserDetails']);
     Route::post('/photo_action', [UserController::class, 'photoAction']);
     Route::post('profile_update', [AuthController::class, 'profile_update'])->name('profile_update');
+
+    Route::get('/notification_preferences', [NotificationPreferenceController::class, 'notificationPreferences']);
+    Route::post('/update_notification_status', [NotificationPreferenceController::class, 'updateNotificationStatus']);
 
 
 });

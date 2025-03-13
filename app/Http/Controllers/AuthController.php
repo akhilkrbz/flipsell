@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\DB;
+use App\Models\Subcategory;
 
 
 class AuthController extends Controller
@@ -304,7 +305,7 @@ public function registration(Request $request)
         if ($request->user_type == 1) {
             $serviceProviderDetails = [
                 'category_id'      => $request->category,
-                'subcategory_id'   => $request->subcategory,
+              
                 'business_name'    => $request->business_name,
                 'business_phone'   => $request->business_phone,
                 'business_email'   => $request->business_email,
@@ -325,6 +326,43 @@ public function registration(Request $request)
                 $serviceProviderDetails['created_at'] = Carbon::now();
                 ServiceProvider::create($serviceProviderDetails);
             }
+
+
+            $subcategories = is_string($request->subcategory) ? json_decode($request->subcategory, true) : $request->subcategory;
+
+            Log::info('Raw Subcategory Data:', ['subcategory' => $request->subcategory]);
+            Log::info('Processed Subcategory Data:', ['subcategory' => $subcategories]);
+            
+            if (!empty($subcategories) && is_array($subcategories)) {
+                Log::info('Processing Subcategories:', ['subcategory' => $subcategories]);
+            
+                foreach ($subcategories as $subcatId) {
+                    Log::info("Checking subcategory ID:", ['subcatId' => $subcatId]);
+            
+                    if (empty($subcatId)) {
+                        Log::warning('Skipping empty subcategory');
+                        continue;
+                    }
+            
+                    $existingSubcategory = Subcategory::where('user_id', $user->id)
+                        ->where('subcategory', $subcatId)
+                        ->first();
+            
+                    if (!$existingSubcategory) {
+                        Log::info("Inserting new subcategory:", ['user_id' => $user->id, 'subcategory' => $subcatId]);
+            
+                        Subcategory::create([
+                            'subcategory' => $subcatId,
+                            'user_id'     => $user->id,
+                            'chosen'      => 1, // Default value
+                        ]);
+                    } else {
+                        Log::info("Subcategory already exists:", ['user_id' => $user->id, 'subcategory' => $subcatId]);
+                    }
+                }
+            }
+            
+            
 
             if ($request->hasFile('reg_document')) {
                 $file = $request->file('reg_document');
