@@ -119,4 +119,6 @@ public function updateNotificationStatus(Request $request)
 
 
 
+
+
 }

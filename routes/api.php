@@ -10,6 +10,7 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\JobRequestsController;
 use App\Http\Controllers\NotificationPreferenceController;
+use App\Http\Controllers\SubscriptionController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -31,6 +32,13 @@ Route::group([
 
     Route::get('/notification_preferences', [NotificationPreferenceController::class, 'notificationPreferences']);
     Route::post('/update_notification_status', [NotificationPreferenceController::class, 'updateNotificationStatus']);
+
+
+
+
+Route::post('/activate-plan', [SubscriptionController::class, 'activatePlan']);
+Route::get('view_user_plan', [SubscriptionController::class, 'viewUserPlan']);
+
 
 
 });
