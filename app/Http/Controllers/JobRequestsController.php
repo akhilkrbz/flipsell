@@ -110,27 +110,6 @@ class JobRequestsController extends Controller
             $user = auth('api')->user();
             if($request->type == 1) {       //All requests
 
-                // $user_service_details = ServiceProvider::where('user_id', $user->id)->first();
-                // $user_subcat_ids = $user_service_details->subcategory_id;
-
-                // $user_latitude = $user->location_latitude;
-                // $user_longitude = $user->location_longitude;
-
-                // $jobRequests = DB::table('job_requests as jr')
-                // ->select('jr.*', DB::raw('(6371 * acos(cos(radians(jr.location_langitude)) 
-                //         * cos(radians('.$user_latitude.')) 
-                //         * cos(radians('.$user_longitude.') - radians(jr.location_longitude)) 
-                //         + sin(radians(jr.location_langitude)) 
-                //         * sin(radians('.$user_latitude.')))) AS distance'))
-                // ->whereRaw('(6371 * acos(cos(radians(jr.location_langitude)) 
-                //         * cos(radians('.$user_latitude.')) 
-                //         * cos(radians('.$user_longitude.') - radians(jr.location_longitude)) 
-                //         + sin(radians(jr.location_langitude)) 
-                //         * sin(radians('.$user_latitude.')))) <= jr.distance_limit')
-                // ->whereIn('jr.subcategory_id', $user_subcat_ids)
-                // ->where('jr.accepted_time', null)
-                // ->get();
-
                 if($user->id) {
                     $user_service_details = ServiceProvider::where('user_id', $user->id)->first();
                     $user_subcat_ids = $user_service_details->subcategory_id ? json_decode($user_service_details->subcategory_id, true) : [];
@@ -164,6 +143,10 @@ class JobRequestsController extends Controller
                     $jobRequests = $jobRequests->get();
     
                     // return $jobRequests;
+
+                    foreach($jobRequests as $key => $job) {
+                        $jobRequests[$key]->images = array_filter([$job->image_1, $job->image_2, $job->image_3]);
+                    }
     
                     return response()->json([
                         'status'    => 200,
@@ -185,6 +168,11 @@ class JobRequestsController extends Controller
                 $job_reqs = JobRequest::whereHas('request_update', function($q1) use ($user) {
                     return $q1->where(['status' => 1, 'business_id' => $user->id]);
                 })->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])->get();
+
+
+                foreach($job_reqs as $key => $job) {
+                    $job_reqs[$key]->images = array_filter([$job->image_1, $job->image_2, $job->image_3]);
+                }
 
                 return response()->json([
                     'status'    => 200,
@@ -225,7 +213,11 @@ class JobRequestsController extends Controller
         try {
             $user = auth('api')->user();
             if($request->type == 1) {       //Pending
-                $job_reqs = JobRequest::User($user->id)->Pending()->get();
+                $job_reqs = JobRequest::User($user->id)->Pending()->with(['category', 'sub_category'])->get();
+
+                foreach($job_reqs as $key => $job) {
+                    $job_reqs[$key]->images = array_filter([$job->image_1, $job->image_2, $job->image_3]);
+                }
 
                 return response()->json([
                     'status'    => 200,
@@ -234,7 +226,11 @@ class JobRequestsController extends Controller
                 ]);
 
             } else if($request->type == 2) {            //Accepted
-                $job_reqs = JobRequest::User($user->id)->Accepted()->get();
+                $job_reqs = JobRequest::User($user->id)->Accepted()->with(['category', 'sub_category'])->get();
+
+                foreach($job_reqs as $key => $job) {
+                    $job_reqs[$key]->images = array_filter([$job->image_1, $job->image_2, $job->image_3]);
+                }
 
                 return response()->json([
                     'status'    => 200,
