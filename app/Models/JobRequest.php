@@ -52,7 +52,7 @@ class JobRequest extends Model
 
     public function request_update()
     {
-        return $this->hasMany(RequestsUpdate::class, 'job_id', 'id');
+        return $this->hasOne(RequestsUpdate::class, 'job_id', 'id')->where('status', 1);
     }
 
     public function category()
