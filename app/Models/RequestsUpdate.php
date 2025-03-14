@@ -25,4 +25,9 @@ class RequestsUpdate extends Model
     {
         return $this->hasMany(JobRequest::class, 'id', 'job_id');
     }
+
+    public function service_provider_data()
+    {
+        return $this->belongsTo(User::class, 'business_id', 'id');
+    }
 }
