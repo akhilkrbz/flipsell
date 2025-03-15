@@ -170,7 +170,9 @@ class JobRequestsController extends Controller
                 // return $job_reqs = RequestsUpdate::where(['business_id' => $user->id, 'status' => 1])->with('accepted_job_request')->get();
                 $job_reqs = JobRequest::whereHas('request_update', function($q1) use ($user) {
                     return $q1->where(['status' => 1, 'business_id' => $user->id]);
-                })->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])->get();
+                })->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])
+                ->orderBy('updated_at', 'desc')
+                ->get();
 
 
                 foreach($job_reqs as $key => $job) {
@@ -222,7 +224,10 @@ class JobRequestsController extends Controller
                 // $job_reqs = JobRequest::User($user->id)->Pending()->with(['category', 'sub_category'])->get();
 
 
-                $job_reqs = JobRequest::User($user->id)->whereDoesntHave('request_update')->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])->get();
+                $job_reqs = JobRequest::User($user->id)->whereDoesntHave('request_update')
+                ->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])
+                ->orderBy('updated_at', 'desc')
+                ->get();
 
                 foreach($job_reqs as $key => $job) {
                     $job_reqs[$key]->images = array_filter([
@@ -242,7 +247,7 @@ class JobRequestsController extends Controller
 
                 $job_reqs = JobRequest::User($user->id)->whereHas('request_update', function($q1) use ($user) {
                     return $q1->where(['status' => 1]);
-                })->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])->get();
+                })->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])->orderBy('updated_at', 'desc')->get();
 
                 foreach($job_reqs as $key => $job) {
                     $job_reqs[$key]->images = array_filter([
