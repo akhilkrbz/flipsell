@@ -219,7 +219,10 @@ class JobRequestsController extends Controller
         try {
             $user = auth('api')->user();
             if($request->type == 1) {       //Pending
-                $job_reqs = JobRequest::User($user->id)->Pending()->with(['category', 'sub_category'])->get();
+                // $job_reqs = JobRequest::User($user->id)->Pending()->with(['category', 'sub_category'])->get();
+
+
+                $job_reqs = JobRequest::User($user->id)->whereDoesntHave('request_update')->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])->get();
 
                 foreach($job_reqs as $key => $job) {
                     $job_reqs[$key]->images = array_filter([
@@ -235,7 +238,11 @@ class JobRequestsController extends Controller
                 ]);
 
             } else if($request->type == 2) {            //Accepted
-                $job_reqs = JobRequest::User($user->id)->Accepted()->with(['category', 'sub_category'])->get();
+                // $job_reqs = JobRequest::User($user->id)->Accepted()->with(['category', 'sub_category'])->get();
+
+                $job_reqs = JobRequest::User($user->id)->whereHas('request_update', function($q1) use ($user) {
+                    return $q1->where(['status' => 1]);
+                })->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])->get();
 
                 foreach($job_reqs as $key => $job) {
                     $job_reqs[$key]->images = array_filter([
