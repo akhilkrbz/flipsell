@@ -137,7 +137,7 @@ class JobRequestsController extends Controller
                                 + sin(radians(jr.location_langitude)) 
                                 * sin(radians(?)))) <= jr.distance_limit', 
                                 [$user_latitude, $user_longitude, $user_latitude]);
-                    });
+                    })->orderBy('jr.updated_at', 'desc');
     
                     // Execute query
                     $jobRequests = $jobRequests->get();
@@ -145,7 +145,10 @@ class JobRequestsController extends Controller
                     // return $jobRequests;
 
                     foreach($jobRequests as $key => $job) {
-                        $jobRequests[$key]->images = array_filter([$job->image_1, $job->image_2, $job->image_3]);
+                        $jobRequests[$key]->images = array_filter([
+                            $job->image_1 ? asset($job->image_1) : '', 
+                            $job->image_2 ? asset($job->image_2) : '', 
+                            $job->image_3 ? asset($job->image_3) : '']);
                     }
     
                     return response()->json([
@@ -171,7 +174,10 @@ class JobRequestsController extends Controller
 
 
                 foreach($job_reqs as $key => $job) {
-                    $job_reqs[$key]->images = array_filter([$job->image_1, $job->image_2, $job->image_3]);
+                    $job_reqs[$key]->images = array_filter([
+                        $job->image_1 ? asset($job->image_1) : '', 
+                        $job->image_2 ? asset($job->image_2) : '', 
+                        $job->image_3 ? asset($job->image_3) : '']);
                 }
 
                 return response()->json([
@@ -216,7 +222,10 @@ class JobRequestsController extends Controller
                 $job_reqs = JobRequest::User($user->id)->Pending()->with(['category', 'sub_category'])->get();
 
                 foreach($job_reqs as $key => $job) {
-                    $job_reqs[$key]->images = array_filter([$job->image_1, $job->image_2, $job->image_3]);
+                    $job_reqs[$key]->images = array_filter([
+                        $job->image_1 ? asset($job->image_1) : '', 
+                        $job->image_2 ? asset($job->image_2) : '', 
+                        $job->image_3 ? asset($job->image_3) : '']);
                 }
 
                 return response()->json([
@@ -229,7 +238,10 @@ class JobRequestsController extends Controller
                 $job_reqs = JobRequest::User($user->id)->Accepted()->with(['category', 'sub_category'])->get();
 
                 foreach($job_reqs as $key => $job) {
-                    $job_reqs[$key]->images = array_filter([$job->image_1, $job->image_2, $job->image_3]);
+                    $job_reqs[$key]->images = array_filter([
+                        $job->image_1 ? asset($job->image_1) : '', 
+                        $job->image_2 ? asset($job->image_2) : '', 
+                        $job->image_3 ? asset($job->image_3) : '']);
                 }
 
                 return response()->json([
@@ -265,6 +277,12 @@ class JobRequestsController extends Controller
             $user = auth('api')->user();
 
             $job_data = JobRequest::where('id', $request->request_id)->with(['category', 'sub_category', 'user_data'])->first();
+
+            $job_data->images = array_filter([
+                $job_data->image_1 ? asset($job_data->image_1) : '', 
+                $job_data->image_2 ? asset($job_data->image_2) : '', 
+                $job_data->image_3 ? asset($job_data->image_3) : '']);
+
 
             return response()->json([
                 'status'    => 200,
