@@ -149,6 +149,10 @@ class JobRequestsController extends Controller
                             $job->image_1 ? asset($job->image_1) : '', 
                             $job->image_2 ? asset($job->image_2) : '', 
                             $job->image_3 ? asset($job->image_3) : '']);
+
+                            $job->image_1 = $job->image_1 ? asset($job->image_1) : '';
+                            $job->image_2 = $job->image_2 ? asset($job->image_2) : '';
+                            $job->image_3 = $job->image_3 ? asset($job->image_3) : '';
                     }
     
                     return response()->json([
@@ -170,7 +174,12 @@ class JobRequestsController extends Controller
                 // return $job_reqs = RequestsUpdate::where(['business_id' => $user->id, 'status' => 1])->with('accepted_job_request')->get();
                 $job_reqs = JobRequest::whereHas('request_update', function($q1) use ($user) {
                     return $q1->where(['status' => 1, 'business_id' => $user->id]);
-                })->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])
+                })->with([
+                    'category', 
+                    'sub_category', 
+                    'request_update.service_provider_data.service_details',
+                    'request_update.service_provider_data.country'
+                ])
                 ->orderBy('updated_at', 'desc')
                 ->get();
 
@@ -180,6 +189,10 @@ class JobRequestsController extends Controller
                         $job->image_1 ? asset($job->image_1) : '', 
                         $job->image_2 ? asset($job->image_2) : '', 
                         $job->image_3 ? asset($job->image_3) : '']);
+
+                    $job->image_1 = $job->image_1 ? asset($job->image_1) : '';
+                    $job->image_2 = $job->image_2 ? asset($job->image_2) : '';
+                    $job->image_3 = $job->image_3 ? asset($job->image_3) : '';
                 }
 
                 return response()->json([
@@ -225,7 +238,12 @@ class JobRequestsController extends Controller
 
 
                 $job_reqs = JobRequest::User($user->id)->whereDoesntHave('request_update')
-                ->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])
+                ->with([
+                    'category', 
+                    'sub_category', 
+                    'request_update.service_provider_data.service_details',
+                    'request_update.service_provider_data.country'
+                ])
                 ->orderBy('updated_at', 'desc')
                 ->get();
 
@@ -234,6 +252,10 @@ class JobRequestsController extends Controller
                         $job->image_1 ? asset($job->image_1) : '', 
                         $job->image_2 ? asset($job->image_2) : '', 
                         $job->image_3 ? asset($job->image_3) : '']);
+
+                    $job->image_1 = $job->image_1 ? asset($job->image_1) : '';
+                    $job->image_2 = $job->image_2 ? asset($job->image_2) : '';
+                    $job->image_3 = $job->image_3 ? asset($job->image_3) : '';
                 }
 
                 return response()->json([
@@ -247,7 +269,12 @@ class JobRequestsController extends Controller
 
                 $job_reqs = JobRequest::User($user->id)->whereHas('request_update', function($q1) use ($user) {
                     return $q1->where(['status' => 1]);
-                })->with(['category', 'sub_category', 'request_update.service_provider_data.service_details'])->orderBy('updated_at', 'desc')->get();
+                })->with([
+                    'category', 
+                    'sub_category', 
+                    'request_update.service_provider_data.service_details',
+                    'request_update.service_provider_data.country'
+                ])->orderBy('updated_at', 'desc')->get();
 
                 foreach($job_reqs as $key => $job) {
                     $job_reqs[$key]->images = array_filter([
@@ -294,6 +321,10 @@ class JobRequestsController extends Controller
                 $job_data->image_1 ? asset($job_data->image_1) : '', 
                 $job_data->image_2 ? asset($job_data->image_2) : '', 
                 $job_data->image_3 ? asset($job_data->image_3) : '']);
+
+                $job_data->image_1 = $job_data->image_1 ? asset($job_data->image_1) : '';
+                $job_data->image_2 = $job_data->image_2 ? asset($job_data->image_2) : '';
+                $job_data->image_3 = $job_data->image_3 ? asset($job_data->image_3) : '';
 
 
             return response()->json([

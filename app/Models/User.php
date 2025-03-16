@@ -84,4 +84,9 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->belongsTo(ServiceProvider::class, 'id', 'user_id');
     }
+
+    public function country()
+    {
+        return $this->belongsTo(Locations::class, 'country_id', 'id');
+    }
 }
