@@ -28,6 +28,8 @@ class UserController extends Controller
         // Fetch country name from locations table
         $location = Location::where('id', $user->location)->first();
         $country_name = $location ? $location->country_name : null;
+
+        $service_provider_data = ServiceProvider::where('user_id', $user->id)->first();
     
         $userDetails = [
             'name' => $user->name,
@@ -41,7 +43,9 @@ class UserController extends Controller
             'location_latitude' => $user->location_latitude,
             'location_longitude' => $user->location_longitude,
             'location' => $user->location,
-            'usertype' => $user->usertype
+            'usertype' => $user->usertype,
+            'service_provider_data' => $service_provider_data,
+            'country_data' => $location
         ];
     
         // If usertype is 1, fetch service provider details
