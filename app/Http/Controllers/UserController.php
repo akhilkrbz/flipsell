@@ -26,10 +26,47 @@ class UserController extends Controller
         }
     
         // Fetch country name from locations table
-        $location = Location::where('id', $user->location)->first();
+        $location = Location::select([
+            'country_name',
+            'country_code'
+        ])->where('id', $user->country_id)->first();
         $country_name = $location ? $location->country_name : null;
 
-        $service_provider_data = ServiceProvider::where('user_id', $user->id)->first();
+        $service_provider_data = ServiceProvider::select([
+            'id',
+            'category_id',
+            'subcategory_id',
+            'website',
+            'business_image',
+            'business_name',
+            'business_phone',
+            'business_email',
+            'status',
+            'gst_number'
+        ])->where('user_id', $user->id)->first();
+
+        //category
+        $categroy_ids = json_decode($service_provider_data->category_id, true);
+        $categories = Category::whereIn('id', $categroy_ids)->get();
+        $cat_array = [];
+        foreach($categories as $catkey => $cat) {
+            $cat_array[$catkey] = [
+                'category_id' => $cat->id,
+                'category_name' => $cat->category_name
+            ];
+        }
+
+        //sub category
+        $subcategroy_ids = json_decode($service_provider_data->subcategory_id, true);
+        $subcategories = Category::whereIn('id', $subcategroy_ids)->get();
+        $subcat_array = [];
+        foreach($subcategories as $subcatkey => $subcat) {
+            $subcat_array[$subcatkey] = [
+                'subcategory_id' => $subcat->id,
+                'subcategory_name' => $subcat->category_name
+            ];
+        }
+
     
         $userDetails = [
             'name' => $user->name,
@@ -44,6 +81,8 @@ class UserController extends Controller
             'location_longitude' => $user->location_longitude,
             'location' => $user->location,
             'usertype' => $user->usertype,
+            'categories' => $cat_array,
+            'sub_categories' => $subcat_array,
             'service_provider_data' => $service_provider_data,
             'country_data' => $location
         ];
