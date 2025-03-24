@@ -46,26 +46,36 @@ class UserController extends Controller
         ])->where('user_id', $user->id)->first();
 
         //category
-        $categroy_ids = json_decode($service_provider_data->category_id, true);
-        $categories = Category::whereIn('id', $categroy_ids)->get();
-        $cat_array = [];
-        foreach($categories as $catkey => $cat) {
-            $cat_array[$catkey] = [
-                'category_id' => $cat->id,
-                'category_name' => $cat->category_name
-            ];
-        }
 
-        //sub category
-        $subcategroy_ids = json_decode($service_provider_data->subcategory_id, true);
-        $subcategories = Category::whereIn('id', $subcategroy_ids)->get();
+        $cat_array = [];
         $subcat_array = [];
-        foreach($subcategories as $subcatkey => $subcat) {
-            $subcat_array[$subcatkey] = [
-                'subcategory_id' => $subcat->id,
-                'subcategory_name' => $subcat->category_name
-            ];
+
+        if($service_provider_data) {
+            if($service_provider_data->category_id) {
+                $categroy_ids = json_decode($service_provider_data->category_id, true);
+                $categories = Category::whereIn('id', $categroy_ids)->get();
+                foreach($categories as $catkey => $cat) {
+                    $cat_array[$catkey] = [
+                        'category_id' => $cat->id,
+                        'category_name' => $cat->category_name
+                    ];
+                }
+            }
+    
+            if($service_provider_data->subcategory_id) {
+                //sub category
+                $subcategroy_ids = json_decode($service_provider_data->subcategory_id, true);
+                $subcategories = Category::whereIn('id', $subcategroy_ids)->get();
+                foreach($subcategories as $subcatkey => $subcat) {
+                    $subcat_array[$subcatkey] = [
+                        'subcategory_id' => $subcat->id,
+                        'subcategory_name' => $subcat->category_name
+                    ];
+                }
+            }
         }
+        
+        
 
     
         $userDetails = [
