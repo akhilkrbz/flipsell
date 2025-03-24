@@ -482,6 +482,7 @@ public function registration(Request $request)
                 'subcategory_id' => 'sometimes',
             ];
         }
+        
 
         // Merge rules and validate the request
         $validatedData = $request->validate(array_merge($userRules, $providerRules));
@@ -546,6 +547,9 @@ public function registration(Request $request)
             'status' => 500,
             'success' => false,
             'message' => 'An error occurred while updating the profile.',
+            'error_message' => $e->getMessage(),
+            // 'file' => $e->getFile(),
+            // 'line' => $e->getLine()
             
         ], 500);
     }
