@@ -17,6 +17,8 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Subcategory;
 
+use Twilio\Rest\Client;
+
 
 class AuthController extends Controller
 {
@@ -108,6 +110,11 @@ class AuthController extends Controller
         try {
             $query = User::where('mobile', $request->mobile_no);
             $otp = '1234';//mt_rand(1000, 9999);
+
+            //Send SMS
+
+
+
             if($query->exists()) {
                 $user = $query->first();
 
@@ -256,170 +263,170 @@ class AuthController extends Controller
     
     
 
- // registration
-public function registration(Request $request)
-{
-    Log::info('Registration API Hit');
+    // registration
+    public function registration(Request $request)
+    {
+        Log::info('Registration API Hit');
 
-    // Custom validation handling
-    $validator = Validator::make($request->all(), [
-        'user_type'           => 'required|in:0,1',
-        'name'               => 'required|string|max:255',
-        'email'              => 'required|email|max:255',
-        'location'           => 'required|string|max:255',
-        'location_latitude'  => 'required|numeric',
-        'location_longitude' => 'required|numeric',
-    ]);
+        // Custom validation handling
+        $validator = Validator::make($request->all(), [
+            'user_type'           => 'required|in:0,1',
+            'name'               => 'required|string|max:255',
+            'email'              => 'required|email|max:255',
+            'location'           => 'required|string|max:255',
+            'location_latitude'  => 'required|numeric',
+            'location_longitude' => 'required|numeric',
+        ]);
 
-    // If validation fails, return error response
-    if ($validator->fails()) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Validation error',
-            'errors'  => $validator->errors(),
-        ], 422);
-    }
+        // If validation fails, return error response
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
 
-    try {
-        Log::info('Registration Input Data:', $request->all());
+        try {
+            Log::info('Registration Input Data:', $request->all());
 
-        $user = auth('api')->user();
+            $user = auth('api')->user();
 
-        DB::beginTransaction();
+            DB::beginTransaction();
 
-        // Common User Details
-        $userDetails = [
-            'name'      => $request->name,
-            'email'     => $request->email,
-            'location'  => $request->location,
-            'location_latitude'  => $request->location_latitude,
-            'location_longitude'  => $request->location_longitude,
-            'usertype'  => $request->user_type ?: 0,
-            'status'    => 1,
-            'updated_at'=> Carbon::now(),
-        ];
-
-        // Update user table
-        User::where('id', $user->id)->update($userDetails);
-
-        if ($request->user_type == 1) {
-            $serviceProviderDetails = [
-                'category_id'      => $request->category,
-              
-                'business_name'    => $request->business_name,
-                'business_phone'   => $request->business_phone,
-                'business_email'   => $request->business_email,
-                'website'          => $request->website,
-                'gst_number'       => $request->gst,
-                'updated_at'       => Carbon::now(),
+            // Common User Details
+            $userDetails = [
+                'name'      => $request->name,
+                'email'     => $request->email,
+                'location'  => $request->location,
+                'location_latitude'  => $request->location_latitude,
+                'location_longitude'  => $request->location_longitude,
+                'usertype'  => $request->user_type ?: 0,
+                'status'    => 1,
+                'updated_at'=> Carbon::now(),
             ];
 
-            // Check if user already exists in `service_providers`
-            $existingProvider = ServiceProvider::where('user_id', $user->id)->first();
+            // Update user table
+            User::where('id', $user->id)->update($userDetails);
 
-            if ($existingProvider) {
-                // Update existing record
-                $existingProvider->update($serviceProviderDetails);
-            } else {
-                // Insert new record
-                $serviceProviderDetails['user_id'] = $user->id;
-                $serviceProviderDetails['created_at'] = Carbon::now();
-                ServiceProvider::create($serviceProviderDetails);
-            }
+            if ($request->user_type == 1) {
+                $serviceProviderDetails = [
+                    'category_id'      => $request->category,
+                
+                    'business_name'    => $request->business_name,
+                    'business_phone'   => $request->business_phone,
+                    'business_email'   => $request->business_email,
+                    'website'          => $request->website,
+                    'gst_number'       => $request->gst,
+                    'updated_at'       => Carbon::now(),
+                ];
+
+                // Check if user already exists in `service_providers`
+                $existingProvider = ServiceProvider::where('user_id', $user->id)->first();
+
+                if ($existingProvider) {
+                    // Update existing record
+                    $existingProvider->update($serviceProviderDetails);
+                } else {
+                    // Insert new record
+                    $serviceProviderDetails['user_id'] = $user->id;
+                    $serviceProviderDetails['created_at'] = Carbon::now();
+                    ServiceProvider::create($serviceProviderDetails);
+                }
 
 
-            $subcategories = is_string($request->subcategory) ? json_decode($request->subcategory, true) : $request->subcategory;
+                $subcategories = is_string($request->subcategory) ? json_decode($request->subcategory, true) : $request->subcategory;
 
-            Log::info('Raw Subcategory Data:', ['subcategory' => $request->subcategory]);
-            Log::info('Processed Subcategory Data:', ['subcategory' => $subcategories]);
-            
-            if (!empty($subcategories) && is_array($subcategories)) {
-                Log::info('Processing Subcategories:', ['subcategory' => $subcategories]);
-            
-                foreach ($subcategories as $subcatId) {
-                    Log::info("Checking subcategory ID:", ['subcatId' => $subcatId]);
-            
-                    if (empty($subcatId)) {
-                        Log::warning('Skipping empty subcategory');
-                        continue;
-                    }
-            
-                    $existingSubcategory = Subcategory::where('user_id', $user->id)
-                        ->where('subcategory', $subcatId)
-                        ->first();
-            
-                    if (!$existingSubcategory) {
-                        Log::info("Inserting new subcategory:", ['user_id' => $user->id, 'subcategory' => $subcatId]);
-            
-                        Subcategory::create([
-                            'subcategory' => $subcatId,
-                            'user_id'     => $user->id,
-                            'chosen'      => 1, // Default value
-                        ]);
-                    } else {
-                        Log::info("Subcategory already exists:", ['user_id' => $user->id, 'subcategory' => $subcatId]);
+                Log::info('Raw Subcategory Data:', ['subcategory' => $request->subcategory]);
+                Log::info('Processed Subcategory Data:', ['subcategory' => $subcategories]);
+                
+                if (!empty($subcategories) && is_array($subcategories)) {
+                    Log::info('Processing Subcategories:', ['subcategory' => $subcategories]);
+                
+                    foreach ($subcategories as $subcatId) {
+                        Log::info("Checking subcategory ID:", ['subcatId' => $subcatId]);
+                
+                        if (empty($subcatId)) {
+                            Log::warning('Skipping empty subcategory');
+                            continue;
+                        }
+                
+                        $existingSubcategory = Subcategory::where('user_id', $user->id)
+                            ->where('subcategory', $subcatId)
+                            ->first();
+                
+                        if (!$existingSubcategory) {
+                            Log::info("Inserting new subcategory:", ['user_id' => $user->id, 'subcategory' => $subcatId]);
+                
+                            Subcategory::create([
+                                'subcategory' => $subcatId,
+                                'user_id'     => $user->id,
+                                'chosen'      => 1, // Default value
+                            ]);
+                        } else {
+                            Log::info("Subcategory already exists:", ['user_id' => $user->id, 'subcategory' => $subcatId]);
+                        }
                     }
                 }
+                
+                
+
+                if ($request->hasFile('reg_document')) {
+                    $file = $request->file('reg_document');
+                    $filename = time() . '_' . $file->getClientOriginalName();
+                    $filePath = 'assets/images/' . $filename;
+                    $file->move(public_path('assets/images'), $filename);
+
+                    // Store full URL
+                    $fullUrl = asset($filePath);
+
+                    // Update reg_document in service provider record
+                    ServiceProvider::where('user_id', $user->id)->update(['reg_document' => $fullUrl]);
+                }
             }
-            
-            
 
-            if ($request->hasFile('reg_document')) {
-                $file = $request->file('reg_document');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $filePath = 'assets/images/' . $filename;
-                $file->move(public_path('assets/images'), $filename);
+            // ✅ Check image & verification images for usertype 0 or 2
+            $imageStatus = !is_null($user->image) ? 1 : 0;
+            $verificationImage1Status = !is_null($user->verification_image1) ? 1 : 0;
+            $verificationImage2Status = !is_null($user->verification_image2) ? 1 : 0;
 
-                // Store full URL
-                $fullUrl = asset($filePath);
-
-                // Update reg_document in service provider record
-                ServiceProvider::where('user_id', $user->id)->update(['reg_document' => $fullUrl]);
+            // ✅ Check business image if usertype is 1
+            $businessImageStatus = 0;
+            if ($request->user_type == 1) {
+                $provider = ServiceProvider::where('user_id', $user->id)->first();
+                $businessImageStatus = ($provider && !is_null($provider->business_image)) ? 1 : 0;
             }
+
+            // Commit the transaction if both tables are updated successfully
+            DB::commit();
+
+            return response()->json([
+                'status'          => 200,
+                'success'         => true,
+                'message'         => 'Details saved successfully.',
+                'is_normal_user'  => ($request->user_type == 0),
+                'selfie_image'    => $imageStatus,
+                'verification_image1' => $verificationImage1Status,
+                'verification_image2' => $verificationImage2Status,
+                'business_image_status' => $businessImageStatus,
+            ]);
+
+        } catch (\Throwable $th) {
+            DB::rollBack(); // Rollback transaction if any error occurs
+
+            Log::error('Registration Error:', [
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Something went wrong!!!',
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
         }
-
-        // ✅ Check image & verification images for usertype 0 or 2
-        $imageStatus = !is_null($user->image) ? 1 : 0;
-        $verificationImage1Status = !is_null($user->verification_image1) ? 1 : 0;
-        $verificationImage2Status = !is_null($user->verification_image2) ? 1 : 0;
-
-        // ✅ Check business image if usertype is 1
-        $businessImageStatus = 0;
-        if ($request->user_type == 1) {
-            $provider = ServiceProvider::where('user_id', $user->id)->first();
-            $businessImageStatus = ($provider && !is_null($provider->business_image)) ? 1 : 0;
-        }
-
-        // Commit the transaction if both tables are updated successfully
-        DB::commit();
-
-        return response()->json([
-            'status'          => 200,
-            'success'         => true,
-            'message'         => 'Details saved successfully.',
-            'is_normal_user'  => ($request->user_type == 0),
-            'selfie_image'    => $imageStatus,
-            'verification_image1' => $verificationImage1Status,
-            'verification_image2' => $verificationImage2Status,
-            'business_image_status' => $businessImageStatus,
-        ]);
-
-    } catch (\Throwable $th) {
-        DB::rollBack(); // Rollback transaction if any error occurs
-
-        Log::error('Registration Error:', [
-            'exception' => $th->getMessage(),
-            'code'      => $th->getCode(),
-        ]);
-
-        return response()->json([
-            'success'   => false,
-            'message'   => 'Something went wrong!!!',
-            'exception' => $th->getMessage(),
-            'code'      => $th->getCode(),
-        ]);
     }
-}
 
 
 
@@ -444,115 +451,137 @@ public function registration(Request $request)
 
 
     public function profile_update(Request $request)
-{
-    try {
-        // Get authenticated user
-        $user = auth('api')->user();
+    {
+        try {
+            // Get authenticated user
+            $user = auth('api')->user();
 
-        if (!$user) {
-            Log::error('Unauthorized access attempt.');
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 401);
-        }
+            if (!$user) {
+                Log::error('Unauthorized access attempt.');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 401);
+            }
 
-        // Define validation rules for the users table
-        $userRules = [
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:users,email,' . $user->id,
-            'location' => 'sometimes|string|max:255',
-            'location_latitude' => 'sometimes',
-            'location_longitude' => 'sometimes',
-            'address' => 'sometimes|string|max:500',
-            'image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'verification_image1' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'verification_image2' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ];
-
-        // Define validation rules for the service_providers table if usertype is 1
-        $providerRules = [];
-        if ($user->usertype == 1) {
-            $providerRules = [
-                'business_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
-                'reg_document' => 'sometimes|file|mimes:pdf,doc,docx|max:2048',
-                'gst_number' => 'sometimes|string|max:20',
-                'website' => 'sometimes|url',
-                'category_id' => 'sometimes',
-                'subcategory_id' => 'sometimes',
+            // Define validation rules for the users table
+            $userRules = [
+                'name' => 'sometimes|string|max:255',
+                'email' => 'sometimes|email|unique:users,email,' . $user->id,
+                'location' => 'sometimes|string|max:255',
+                'location_latitude' => 'sometimes',
+                'location_longitude' => 'sometimes',
+                'address' => 'sometimes|string|max:500',
+                'image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'verification_image1' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'verification_image2' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
             ];
-        }
-        
 
-        // Merge rules and validate the request
-        $validatedData = $request->validate(array_merge($userRules, $providerRules));
-
-        // Log validated data
-        Log::info('Validated data:', $validatedData);
-
-        // Handle file uploads
-        $filePaths = [];
-        foreach (['image', 'verification_image1', 'verification_image2', 'business_image', 'reg_document'] as $field) {
-            if ($request->hasFile($field)) {
-                $file = $request->file($field);
-                $path = 'assets/images/' . $field;
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $file->move(public_path($path), $fileName);
-                $filePaths[$field] = asset($path . '/' . $fileName);
-                Log::info("Uploaded file for $field: " . $filePaths[$field]);
+            // Define validation rules for the service_providers table if usertype is 1
+            $providerRules = [];
+            if ($user->usertype == 1) {
+                $providerRules = [
+                    'business_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
+                    'reg_document' => 'sometimes|file|mimes:pdf,doc,docx|max:2048',
+                    'gst_number' => 'sometimes|string|max:20',
+                    'website' => 'sometimes|url',
+                    'category_id' => 'sometimes',
+                    'subcategory_id' => 'sometimes',
+                ];
             }
-        }
-
-        // Update user profile in the users table
-        $userData = array_intersect_key($validatedData, array_flip(array_keys($userRules)));
-        $userData = array_merge($userData, array_intersect_key($filePaths, $userData));
-        DB::table('users')->where('id', $user->id)->update($userData);
-        Log::info('User profile updated:', $userData);
-
-        // Insert or update service provider profile if usertype is 1
-        if ($user->usertype == 1) {
-            $providerData = array_intersect_key($validatedData, array_flip(array_keys($providerRules)));
-            $providerFilePaths = array_intersect_key($filePaths, $providerData);
-            $serviceProviderData = array_merge($providerData, $providerFilePaths);
-            $serviceProviderData['user_id'] = $user->id; // Add user ID to associate
-
-            // Check if service provider entry exists
-            $existingProvider = DB::table('service_providers')->where('user_id', $user->id)->first();
-
-            if ($existingProvider) {
-                // Update if exists
-                DB::table('service_providers')->where('user_id', $user->id)->update($serviceProviderData);
-                Log::info('Service provider profile updated:', $serviceProviderData);
-            } else {
-                // Insert if not exists
-                DB::table('service_providers')->insert($serviceProviderData);
-                Log::info('Service provider profile created:', $serviceProviderData);
-            }
-        }
-
-        return response()->json([
-            'status' => 200,
-            'success' => true,
-            'message' => 'Profile updated successfully.',
-            'data' => array_merge($userData, $serviceProviderData ?? [])
-        ]);
-    } catch (\Exception $e) {
-        Log::error('Error in profile_update:', [
-            'message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine()
-        ]);
-
-        return response()->json([
-            'status' => 500,
-            'success' => false,
-            'message' => 'An error occurred while updating the profile.',
-            'error_message' => $e->getMessage(),
-            // 'file' => $e->getFile(),
-            // 'line' => $e->getLine()
             
-        ], 500);
+
+            // Merge rules and validate the request
+            $validatedData = $request->validate(array_merge($userRules, $providerRules));
+
+            // Log validated data
+            Log::info('Validated data:', $validatedData);
+
+            // Handle file uploads
+            $filePaths = [];
+            foreach (['image', 'verification_image1', 'verification_image2', 'business_image', 'reg_document'] as $field) {
+                if ($request->hasFile($field)) {
+                    $file = $request->file($field);
+                    $path = 'assets/images/' . $field;
+                    $fileName = time() . '_' . $file->getClientOriginalName();
+                    $file->move(public_path($path), $fileName);
+                    $filePaths[$field] = asset($path . '/' . $fileName);
+                    Log::info("Uploaded file for $field: " . $filePaths[$field]);
+                }
+            }
+
+            // Update user profile in the users table
+            $userData = array_intersect_key($validatedData, array_flip(array_keys($userRules)));
+            $userData = array_merge($userData, array_intersect_key($filePaths, $userData));
+            DB::table('users')->where('id', $user->id)->update($userData);
+            Log::info('User profile updated:', $userData);
+
+            // Insert or update service provider profile if usertype is 1
+            if ($user->usertype == 1) {
+                $providerData = array_intersect_key($validatedData, array_flip(array_keys($providerRules)));
+                $providerFilePaths = array_intersect_key($filePaths, $providerData);
+                $serviceProviderData = array_merge($providerData, $providerFilePaths);
+                $serviceProviderData['user_id'] = $user->id; // Add user ID to associate
+
+                // Check if service provider entry exists
+                $existingProvider = DB::table('service_providers')->where('user_id', $user->id)->first();
+
+                if ($existingProvider) {
+                    // Update if exists
+                    DB::table('service_providers')->where('user_id', $user->id)->update($serviceProviderData);
+                    Log::info('Service provider profile updated:', $serviceProviderData);
+                } else {
+                    // Insert if not exists
+                    DB::table('service_providers')->insert($serviceProviderData);
+                    Log::info('Service provider profile created:', $serviceProviderData);
+                }
+            }
+
+            return response()->json([
+                'status' => 200,
+                'success' => true,
+                'message' => 'Profile updated successfully.',
+                'data' => array_merge($userData, $serviceProviderData ?? [])
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in profile_update:', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+
+            return response()->json([
+                'status' => 500,
+                'success' => false,
+                'message' => 'An error occurred while updating the profile.',
+                'error_message' => $e->getMessage(),
+                // 'file' => $e->getFile(),
+                // 'line' => $e->getLine()
+                
+            ], 500);
+        }
     }
-}
+
+
+    //Send SMS
+    public function send_sms($mobile) {
+        $sid = env('TWILIO_SID');
+        $token = env('TWILIO_TOKEN');
+        // $client = new Twilio\Rest\Client($sid, $token);
+
+        $client = new Client($sid, $token);
+
+        // Use the Client to make requests to the Twilio REST API
+        $client->messages->create(
+            // The number you'd like to send the message to
+            '+919633517362',
+            [
+                // A Twilio phone number you purchased at https://console.twilio.com
+                'from' => '+61456774169',
+                // The body of the text message you'd like to send
+                'body' => "Hey Jenny! Good luck on the bar exam!"
+            ]
+        );
+    }
 
 }
