@@ -57,7 +57,7 @@ class JobRequestsController extends Controller
                 'flexible'          => $request->flexible,
                 'looking_for'       => $request->looking_for,
                 'location'          => $request->location,
-                'location_langitude'          => $request->location_langitude,
+                'location_langitude'          => $request->location_latitude,
                 'location_longitude'          => $request->location_longitude,
                 'tags'              => $request->tags,
                 'distance_limit'    => $request->distance_limit,
@@ -114,33 +114,100 @@ class JobRequestsController extends Controller
                     $user_service_details = ServiceProvider::where('user_id', $user->id)->first();
                     $user_subcat_ids = $user_service_details->subcategory_id ? json_decode($user_service_details->subcategory_id, true) : [];
     
-                    $user_latitude = $user->location_latitude;
-                    $user_longitude = $user->location_longitude;
+                    $user_latitude = floatval($user->location_latitude);
+                    $user_longitude = floatval($user->location_longitude);
     
                     // Base query
+                    // $jobRequests = DB::table('job_requests as jr')
+                    //     ->select('jr.*', DB::raw('(6371 * acos(cos(radians(jr.location_langitude)) 
+                    //             * cos(radians('.$user_latitude.')) 
+                    //             * cos(radians('.$user_longitude.') - radians(jr.location_longitude)) 
+                    //             + sin(radians(jr.location_langitude)) 
+                    //             * sin(radians('.$user_latitude.')))) AS distance'))
+                    //     ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
+                    //     // ->where('jr.updated_at', '>=', date('Y-m-d'))
+                    //     ->where('jr.accepted_time', null);
+    
+                    // // Apply distance condition only if distance_limit > 0
+                    // $jobRequests = $jobRequests->where(function ($query) use ($user_latitude, $user_longitude) {
+                    //     $query->where('jr.distance_limit', 0)
+                    //         ->orWhereRaw('(6371 * acos(cos(radians(jr.location_langitude)) 
+                    //             * cos(radians(?)) 
+                    //             * cos(radians(?) - radians(jr.location_longitude)) 
+                    //             + sin(radians(jr.location_langitude)) 
+                    //             * sin(radians(?)))) <= jr.distance_limit', 
+                    //             [$user_latitude, $user_longitude, $user_latitude]);
+                    // })->orderBy('jr.updated_at', 'desc');
+    
+                    // // Execute query
+                    // $jobRequests = $jobRequests->get();
+
+
+                    // $jobRequests = DB::table('job_requests as jr')
+                    //     ->select('jr.*', 
+                    //         'jr.distance_limit', // Include distance_limit in the SELECT clause
+                    //         DB::raw('(6371 * acos(cos(radians(jr.location_langitude)) 
+                    //             * cos(radians(?)) 
+                    //             * cos(radians(?) - radians(jr.location_longitude)) 
+                    //             + sin(radians(jr.location_langitude)) 
+                    //             * sin(radians(?)))) AS distance'
+                    //         )
+                    //     )
+                    //     ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
+                    //     ->where('jr.accepted_time', null)
+                    //     ->havingRaw('(distance <= distance_limit OR distance_limit = 0)')
+                    //     ->orderBy('jr.updated_at', 'desc')
+                    //     ->setBindings([$user_latitude, $user_longitude, $user_latitude])
+                    //     ->get();
+
+                    // $jobRequests = DB::table('job_requests as jr')
+                    // ->select('jr.*', DB::raw("(6371 * acos(cos(radians(jr.location_langitude)) 
+                    //         * cos(radians($user_latitude)) 
+                    //         * cos(radians($user_longitude) - radians(jr.location_longitude)) 
+                    //         + sin(radians(jr.location_langitude)) 
+                    //         * sin(radians($user_latitude)))) AS distance"))
+                    // ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
+                    // ->where('jr.accepted_time', null)
+                    // ->where(function ($query) use ($user_latitude, $user_longitude) {
+                    //     $query->where('jr.distance_limit', 0)
+                    //           ->orWhereRaw("(6371 * acos(cos(radians(jr.location_langitude)) 
+                    //             * cos(radians($user_latitude)) 
+                    //             * cos(radians($user_longitude) - radians(jr.location_longitude)) 
+                    //             + sin(radians(jr.location_langitude)) 
+                    //             * sin(radians($user_latitude)))) <= jr.distance_limit");
+                    // })
+                    // ->orderBy('jr.updated_at', 'desc')
+                    // ->get();
+
+
+
                     $jobRequests = DB::table('job_requests as jr')
-                        ->select('jr.*', DB::raw('(6371 * acos(cos(radians(jr.location_langitude)) 
-                                * cos(radians('.$user_latitude.')) 
-                                * cos(radians('.$user_longitude.') - radians(jr.location_longitude)) 
-                                + sin(radians(jr.location_langitude)) 
-                                * sin(radians('.$user_latitude.')))) AS distance'))
+                        ->select('jr.*', DB::raw("(6371 * acos(cos(radians(COALESCE(jr.location_langitude, 0))) 
+                                * cos(radians($user_latitude)) 
+                                * cos(radians($user_longitude) - radians(COALESCE(jr.location_longitude, 0))) 
+                                + sin(radians(COALESCE(jr.location_langitude, 0))) 
+                                * sin(radians($user_latitude)))) AS distance"))
                         ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
-                        // ->where('jr.updated_at', '>=', date('Y-m-d'))
-                        ->where('jr.accepted_time', null);
-    
-                    // Apply distance condition only if distance_limit > 0
-                    $jobRequests = $jobRequests->where(function ($query) use ($user_latitude, $user_longitude) {
-                        $query->where('jr.distance_limit', 0)
-                            ->orWhereRaw('(6371 * acos(cos(radians(jr.location_langitude)) 
-                                * cos(radians(?)) 
-                                * cos(radians(?) - radians(jr.location_longitude)) 
-                                + sin(radians(jr.location_langitude)) 
-                                * sin(radians(?)))) <= jr.distance_limit', 
-                                [$user_latitude, $user_longitude, $user_latitude]);
-                    })->orderBy('jr.updated_at', 'desc');
-    
-                    // Execute query
-                    $jobRequests = $jobRequests->get();
+                        ->where('jr.accepted_time', null)
+                        ->whereNotNull('jr.location_langitude')  // Ignore rows where latitude is NULL
+                        ->whereNotNull('jr.location_longitude') // Ignore rows where longitude is NULL
+                        ->where(function ($query) use ($user_latitude, $user_longitude) {
+                            $query->where('jr.distance_limit', 0)
+                                ->orWhereRaw("(6371 * acos(cos(radians(COALESCE(jr.location_langitude, 0))) 
+                                    * cos(radians($user_latitude)) 
+                                    * cos(radians($user_longitude) - radians(COALESCE(jr.location_longitude, 0))) 
+                                    + sin(radians(COALESCE(jr.location_langitude, 0))) 
+                                    * sin(radians($user_latitude)))) <= jr.distance_limit");
+                        })
+                        ->orderBy('jr.updated_at', 'desc')
+                        ->get();
+                
+
+
+
+
+
+
     
                     // return $jobRequests;
 
@@ -398,7 +465,7 @@ class JobRequestsController extends Controller
                     'flexible'          => $request->flexible,
                     'looking_for'       => $request->looking_for,
                     'location'          => $request->location,
-                    'location_langitude'          => $request->location_langitude,
+                    'location_langitude'          => $request->location_latitude,
                     'location_longitude'          => $request->location_longitude,
                     'tags'              => $request->tags,
                     'distance_limit'    => $request->distance_limit,
