@@ -519,4 +519,83 @@ class JobRequestsController extends Controller
             ]);
         }
     }
+
+    public function jobRequestAction(Request $request)
+    {
+        try {
+            if($request->action == 1) {     //Delete
+                $user = auth('api')->user();
+                $job_req = JobRequest::where('id', $request->request_id);
+                if($job_req->exists) {
+                    $delete = $job_req->delete();
+                    if($delete) {
+                        return response()->json([
+                            'status'    => 200,
+                            'success'   => true,
+                            'message'   => 'Job request deleted successfully.'
+                        ]);
+                    } else {
+                        return response()->json([
+                            'status'    => 200,
+                            'success'   => false,
+                            'message'   => 'Job request delete failed!'
+                        ]);
+                    }
+                } else {
+                    return response()->json([
+                        'status'    => 200,
+                        'success'   => false,
+                        'message'   => 'Job request not found!'
+                    ]);
+                }
+
+            } else if($request->action == 2) {  //Renew
+                $job_req = JobRequest::where('id', $request->request_id);
+                if($job_req->exists) {
+                    $job_req_data = $job_req->first();
+
+                    $job_req_data->updated_at = Carbon::now();
+                    $update = $job_req_data->save();
+                    if($update) {
+                        return response()->json([
+                            'status'    => 200,
+                            'success'   => true,
+                            'message'   => 'Job request renewed successfully.'
+                        ]);
+                    } else {
+                        return response()->json([
+                            'status'    => 200,
+                            'success'   => false,
+                            'message'   => 'Job request renewal failed!'
+                        ]);
+                    }
+                } else {
+                    return response()->json([
+                        'status'    => 200,
+                        'success'   => false,
+                        'message'   => 'Job request not found!'
+                    ]);
+                }
+            } else {
+                return response()->json([
+                    'status'    => 200,
+                    'success'   => false,
+                    'message'   => 'Invalid action'
+                ]);
+            }
+        } catch (\Throwable $th) {
+            Log::error('Error:', [
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+    
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Something went wrong!!!',
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+        }
+
+    }
 }
