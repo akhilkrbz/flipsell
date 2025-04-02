@@ -523,9 +523,9 @@ class JobRequestsController extends Controller
     public function jobRequestAction(Request $request)
     {
         try {
+            $user = auth('api')->user();
             if($request->action == 1) {     //Delete
-                $user = auth('api')->user();
-                $job_req = JobRequest::where('id', $request->request_id);
+                $job_req = JobRequest::where(['id' => $request->request_id, 'user_id' => $user->id]);
                 if($job_req->exists) {
                     $delete = $job_req->delete();
                     if($delete) {
@@ -550,7 +550,7 @@ class JobRequestsController extends Controller
                 }
 
             } else if($request->action == 2) {  //Renew
-                $job_req = JobRequest::where('id', $request->request_id);
+                $job_req = JobRequest::where(['id' => $request->request_id, 'user_id' => $user->id]);
                 if($job_req->exists) {
                     $job_req_data = $job_req->first();
 
