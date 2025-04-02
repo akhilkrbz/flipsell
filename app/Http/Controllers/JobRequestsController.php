@@ -526,7 +526,7 @@ class JobRequestsController extends Controller
             $user = auth('api')->user();
             if($request->action == 1) {     //Delete
                 $job_req = JobRequest::where(['id' => $request->request_id, 'user_id' => $user->id]);
-                if($job_req->exists) {
+                if($job_req->exists()) {
                     $delete = $job_req->delete();
                     if($delete) {
                         return response()->json([
@@ -551,7 +551,7 @@ class JobRequestsController extends Controller
 
             } else if($request->action == 2) {  //Renew
                 $job_req = JobRequest::where(['id' => $request->request_id, 'user_id' => $user->id]);
-                if($job_req->exists) {
+                if($job_req->exists()) {
                     $job_req_data = $job_req->first();
 
                     $job_req_data->updated_at = Carbon::now();
