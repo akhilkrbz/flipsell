@@ -6,6 +6,7 @@ use App\Models\Plan;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class SubscriptionController extends Controller
 {
@@ -51,50 +52,111 @@ class SubscriptionController extends Controller
 
 
     public function viewUserPlan()
-{
-    // Get the authenticated user
-    $user = auth('api')->user();
+    {
+        // Get the authenticated user
+        $user = auth('api')->user();
 
-    if (!$user) {
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access'
+            ], 401);
+        }
+
+        // Fetch the user's latest subscription
+        $subscription = Subscription::where('user_id', $user->id)->latest()->first();
+
+        if (!$subscription) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active subscription found'
+            ]);
+        }
+
+        // Fetch the plan details
+        $plan = Plan::find($subscription->plan_id);
+
+        if (!$plan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Plan not found'
+            ]);
+        }
+
+        // Return subscription and plan details (flattened structure)
         return response()->json([
-            'success' => false,
-            'message' => 'Unauthorized access'
-        ], 401);
-    }
-
-    // Fetch the user's latest subscription
-    $subscription = Subscription::where('user_id', $user->id)->latest()->first();
-
-    if (!$subscription) {
-        return response()->json([
-            'success' => false,
-            'message' => 'No active subscription found'
+            'success' => true,
+            'start_date' => $subscription->start_date,
+            'end_date' => $subscription->end_date,
+            'plan_name' => $plan->plan_name,
+            'month_no' => $plan->month_no,
+            'price' => $plan->price,
+            'currency' => $plan->currency,
+            'symbol' => $plan->symbol,
+            'description' => $plan->description
         ]);
     }
 
-    // Fetch the plan details
-    $plan = Plan::find($subscription->plan_id);
 
-    if (!$plan) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Plan not found'
-        ]);
+    //createPaymentIntent
+    public function createPaymentIntent(Request $request)
+    {
+        Log::info('Registration API Hit');
+    
+        try {
+
+            $user = auth('api')->user();
+
+            $plan = Plan::where('id', $request->plan_id);
+           
+            if($plan->exists()) {
+                $plan = $plan->first();
+
+                require_once base_path('vendor/stripe/stripe-php/init.php');
+                $stripe_sk = env('STRIPE_SECRET');
+                // $currency = env('STRIPE_API_CURRENCY');
+                $currency = $plan->currency ? strtolower($plan->currency) : 'inr';
+                // $hash_plan_id = Hash::make($request->item);
+                $stripe = new \Stripe\StripeClient($stripe_sk);
+
+                $interval_count = $plan->month_no ? $plan->month_no : 1;
+                $interval = 'month';
+
+                $paymentIntent = $stripe->paymentIntents->create([
+                    'amount'                => $plan->price * 100,
+                    'currency'              => $currency,
+                    // 'payment_method_types'  => ['card']
+                ]);
+
+                return response()->json([
+                    'status'        => 200,
+                    'message'       => 'Payment intent created successfully.',
+                    'clientSecret'  => $paymentIntent->client_secret
+                ]);
+
+                
+            } else {
+                return response()->json([
+                    'status'        => 401,
+                    'message'       => 'Invalid plan'
+                ]);
+            }
+
+        } catch (\Throwable $th) {
+    
+            Log::error('Error:', [
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+    
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Something went wrong!!!',
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+        }
     }
-
-    // Return subscription and plan details (flattened structure)
-    return response()->json([
-        'success' => true,
-        'start_date' => $subscription->start_date,
-        'end_date' => $subscription->end_date,
-        'plan_name' => $plan->plan_name,
-        'month_no' => $plan->month_no,
-        'price' => $plan->price,
-        'currency' => $plan->currency,
-        'symbol' => $plan->symbol,
-        'description' => $plan->description
-    ]);
-}
 
 }
 

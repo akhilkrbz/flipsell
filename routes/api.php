@@ -58,3 +58,6 @@ Route::get('request_list', [JobRequestsController::class, 'requestList']);
 Route::get('user_request_list', [JobRequestsController::class, 'userRequestList']);
 Route::get('job_request_details', [JobRequestsController::class, 'jobRequestDetails']);
 Route::post('job_request_action', [JobRequestsController::class, 'jobRequestAction']);
+
+//Stripe apis
+Route::post('create_payment_intent', [SubscriptionController::class, 'createPaymentIntent']);
