@@ -112,7 +112,7 @@ class AuthController extends Controller
             $otp = '1234';//mt_rand(1000, 9999);
 
             //Send SMS
-
+            $this->send_sms($request->mobile_no);
 
 
             if($query->exists()) {
@@ -138,7 +138,6 @@ class AuthController extends Controller
                 $details = [
                     'name'      => 'Guest user',
                     'email'     => null,
-
                     'password'  => '',
                     'mobile'    => $request->mobile_no,
                     'status'    => 0,
@@ -174,82 +173,96 @@ class AuthController extends Controller
     public function verify_otp(OtpVerifyRequest $request)
     {
         try {
-            $query = User::where(['mobile' => $request->mobile_no, 'login_otp' => $request->otp]);
+            $query = User::where(['mobile' => $request->mobile_no]);
     
             if ($query->exists()) {
                 $user = $query->first();
-    
-                // LOGIN USER
-                $credentials = ['mobile' => $request->mobile_no, 'password' => ''];
-    
-                if ($token = auth('api')->attempt($credentials)) {
-                    $user = auth('api')->user();
-                    $refresh_token = auth('api')->fromUser($user);
-                    $verificationStatus = $user->verification_status;
-    
-                    // ✅ Check image & verification images for usertype 0 or 2
-                    $imageStatus = !is_null($user->image) ? true : false;
-                    $verificationImage1Status = !is_null($user->verification_image1) ? true : false;
-                    $verificationImage2Status = !is_null($user->verification_image2) ? true : false;
-    
-                    // ✅ Check business image and reg_document if usertype is 1
-                    $businessImageStatus = false;
-                    $regDocumentStatus = false;
-                    if ($user->usertype == 1) {
-                        $provider = ServiceProvider::where('user_id', $user->id)->first();
-                        $businessImageStatus = ($provider && !is_null($provider->business_image)) ? true : false;
-                        $regDocumentStatus = ($provider && !is_null($provider->reg_document)) ? true : false;
+
+                //Verify OTP
+                $otp_verify_status = $this->verify_login_otp($request->mobile_no, $request->otp);
+                if($otp_verify_status == 'approved') {
+                    // LOGIN USER
+                    $credentials = ['mobile' => $request->mobile_no, 'password' => ''];
+        
+                    if ($token = auth('api')->attempt($credentials)) {
+                        $user = auth('api')->user();
+                        $refresh_token = auth('api')->fromUser($user);
+                        $verificationStatus = $user->verification_status;
+        
+                        // ✅ Check image & verification images for usertype 0 or 2
+                        $imageStatus = !is_null($user->image) ? true : false;
+                        $verificationImage1Status = !is_null($user->verification_image1) ? true : false;
+                        $verificationImage2Status = !is_null($user->verification_image2) ? true : false;
+        
+                        // ✅ Check business image and reg_document if usertype is 1
+                        $businessImageStatus = false;
+                        $regDocumentStatus = false;
+                        if ($user->usertype == 1) {
+                            $provider = ServiceProvider::where('user_id', $user->id)->first();
+                            $businessImageStatus = ($provider && !is_null($provider->business_image)) ? true : false;
+                            $regDocumentStatus = ($provider && !is_null($provider->reg_document)) ? true : false;
+                        }
+        
+                        // ✅ Determine image_verification_completed status as true or false
+                        $imageVerificationCompleted = false;
+                        if ($user->usertype == 0) {
+                            $imageVerificationCompleted = ($imageStatus && $verificationImage1Status && $verificationImage2Status) ? true : false;
+                        } elseif ($user->usertype == 1) {
+                            $imageVerificationCompleted = ($imageStatus && $verificationImage1Status && $verificationImage2Status && $regDocumentStatus && $businessImageStatus) ? true : false;
+                        }
+        
+                        return response()->json([
+                            'status'        => 200,
+                            'success'       => true,
+                            'message'       => 'OTP verified successfully',
+                            'user_exist'    => $user->status ? true : false,
+                            'access_token'  => $token,
+                            'refresh_token' => $refresh_token,
+                            'token_type'    => 'bearer',
+                            'expires_in'    => auth('api')->factory()->getTTL() * 120,
+                            'user'          => [
+                                'id'                    => $user->id,
+                                'name'                  => $user->name,
+                                'email'                 => $user->email,
+                                'mobile'                => $user->mobile,
+                                'status'                => $user->status,
+                                'created_at'            => $user->created_at,
+                                'updated_at'            => $user->updated_at,
+                                'usertype'              => $user->usertype,
+                                'verification_status'   => $verificationStatus
+                            ],
+                            'image_verification_completed' => $imageVerificationCompleted,
+                            'selfie_image'                => $imageStatus,
+                            'verification_image1'         => $verificationImage1Status,
+                            'verification_image2'         => $verificationImage2Status,
+                            'business_image_status'       => $businessImageStatus,
+                        ]);
                     }
-    
-                    // ✅ Determine image_verification_completed status as true or false
-                    $imageVerificationCompleted = false;
-                    if ($user->usertype == 0) {
-                        $imageVerificationCompleted = ($imageStatus && $verificationImage1Status && $verificationImage2Status) ? true : false;
-                    } elseif ($user->usertype == 1) {
-                        $imageVerificationCompleted = ($imageStatus && $verificationImage1Status && $verificationImage2Status && $regDocumentStatus && $businessImageStatus) ? true : false;
-                    }
-    
+        
                     return response()->json([
-                        'status'        => 200,
-                        'success'       => true,
-                        'message'       => 'OTP verified successfully',
-                        'user_exist'    => $user->status ? true : false,
-                        'access_token'  => $token,
-                        'refresh_token' => $refresh_token,
-                        'token_type'    => 'bearer',
-                        'expires_in'    => auth('api')->factory()->getTTL() * 120,
-                        'user'          => [
-                            'id'                    => $user->id,
-                            'name'                  => $user->name,
-                            'email'                 => $user->email,
-                            'mobile'                => $user->mobile,
-                            'status'                => $user->status,
-                            'created_at'            => $user->created_at,
-                            'updated_at'            => $user->updated_at,
-                            'usertype'              => $user->usertype,
-                            'verification_status'   => $verificationStatus
-                        ],
-                        'image_verification_completed' => $imageVerificationCompleted,
-                        'selfie_image'                => $imageStatus,
-                        'verification_image1'         => $verificationImage1Status,
-                        'verification_image2'         => $verificationImage2Status,
-                        'business_image_status'       => $businessImageStatus,
-                    ]);
+                        'status'  => 401,
+                        'success' => false,
+                        'message' => 'Invalid user.'
+                    ], 401);
+                } else {
+                    // Handle invalid OTP case with proper error message and status code
+                    return response()->json([
+                        'status'  => 400,
+                        'success' => false,
+                        'message' => 'Invalid OTP. Please enter a valid OTP.'
+                    ], 400);
                 }
     
+                
+            } else {
                 return response()->json([
-                    'status'  => 401,
-                    'success' => false,
-                    'message' => 'Invalid user.'
-                ], 401);
+                    'status'    => 200,
+                    'success'   => false,
+                    'message'   => 'User not exists.'
+                ]);
             }
     
-            // Handle invalid OTP case with proper error message and status code
-            return response()->json([
-                'status'  => 400,
-                'success' => false,
-                'message' => 'Invalid OTP. Please enter a valid OTP.'
-            ], 400);
+            
     
         } catch (\Throwable $th) {
             return response()->json([
@@ -564,24 +577,54 @@ class AuthController extends Controller
 
 
     //Send SMS
-    public function send_sms($mobile) {
+    public function send_sms($mobile = '') {
         $sid = env('TWILIO_SID');
         $token = env('TWILIO_TOKEN');
+        $verify_sid = env('TWILIO_VERIFY_SID');
         // $client = new Twilio\Rest\Client($sid, $token);
 
-        $client = new Client($sid, $token);
+        $twilio = new Client($sid, $token);
 
-        // Use the Client to make requests to the Twilio REST API
-        $client->messages->create(
-            // The number you'd like to send the message to
-            '+919633517362',
-            [
-                // A Twilio phone number you purchased at https://console.twilio.com
-                'from' => '+61456774169',
-                // The body of the text message you'd like to send
-                'body' => "Hey Jenny! Good luck on the bar exam!"
-            ]
+        $verification = $twilio->verify->v2->services($verify_sid)
+        ->verifications->create(
+            '+91'.$mobile, // To
+            "sms" // Channel
         );
+
+        // print $verification->sid;
+    }
+
+    //Send SMS
+    public function verify_login_otp($mobile = '', $otp = '') {
+
+        try {
+            $sid = env('TWILIO_SID');
+            $token = env('TWILIO_TOKEN');
+            $verify_sid = env('TWILIO_VERIFY_SID');
+            // $client = new Twilio\Rest\Client($sid, $token);
+
+            $twilio = new Client($sid, $token);
+
+            $verification_check = $twilio->verify->v2->services($verify_sid)
+            ->verificationChecks->create([
+                "to" => '+91'.$mobile,
+                "code" => $otp,
+            ]);
+
+            // print $verification_check;
+
+            return $verification_check->status;
+        } catch (\Throwable $th) {
+            // return response()->json([
+            //     'success'   => false,
+            //     'message'   => 'Something went wrong!!!',
+            //     'exception' => $th->getMessage(),
+            //     'code'      => $th->getCode(),
+            // ], 500);
+            return true;
+        }
+        
+
     }
 
 }

@@ -27,7 +27,7 @@ class OtpVerifyRequest extends FormRequest
     {
         return [
             'mobile_no' => 'required|max:10|min:10',
-            'otp'       => 'required|max:4|min:4',
+            'otp'       => 'required|max:6|min:4',
         ];
     }
 
