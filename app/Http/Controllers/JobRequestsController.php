@@ -304,7 +304,7 @@ class JobRequestsController extends Controller
                 // $job_reqs = JobRequest::User($user->id)->Pending()->with(['category', 'sub_category'])->get();
 
 
-                $job_reqs = JobRequest::User($user->id)->whereDoesntHave('request_update')
+                $job_reqs = JobRequest::Basic()->AddRequestStatus()->User($user->id)->whereDoesntHave('request_update')
                 ->with([
                     'category', 
                     'sub_category', 
