@@ -75,7 +75,12 @@ class UserController extends Controller
             }
         }
         
-        
+        //User verification completion
+        $user_verification_completion = false;
+        $business_verification_completion = false;
+        if($user->verification_image1 != '' && $user->verification_image2 != '') {
+            $user_verification_completion = true;
+        }
 
     
         $userDetails = [
@@ -91,6 +96,7 @@ class UserController extends Controller
             'location_longitude' => $user->location_longitude,
             'location' => $user->location,
             'usertype' => $user->usertype,
+            'user_verification_completion' => $user_verification_completion,
             'categories' => $cat_array,
             'sub_categories' => $subcat_array,
             'service_provider_data' => $service_provider_data,
@@ -109,6 +115,10 @@ class UserController extends Controller
                 // Fetch category names
                 $categories = Category::whereIn('id', $categoryIds)->pluck('category_name')->toArray();
                 $subcategories = Category::whereIn('id', $subcategoryIds)->pluck('category_name')->toArray();
+
+                if($serviceProvider->business_image != '' && $serviceProvider->reg_document != '') {
+                    $business_verification_completion = true;
+                }
     
                 $userDetails['service_provider'] = [
                     'category_names' => $categories,
@@ -142,6 +152,8 @@ class UserController extends Controller
         } else {
             $userDetails['current_plan'] = null; // If no subscription, return null
         }
+
+        $userDetails['business_verification_completion'] = $business_verification_completion;
     
         return response()->json($userDetails, 200);
     }
