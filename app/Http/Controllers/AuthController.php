@@ -325,7 +325,7 @@ class AuthController extends Controller
             if ($request->user_type == 1) {
                 $serviceProviderDetails = [
                     'category_id'      => $request->category,
-                
+                    'subcategory_id'   => $request->subcategory,
                     'business_name'    => $request->business_name,
                     'business_phone'   => $request->business_phone,
                     'business_email'   => $request->business_email,
@@ -497,7 +497,7 @@ class AuthController extends Controller
                     'business_image' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
                     'reg_document' => 'sometimes|file|mimes:pdf,doc,docx|max:2048',
                     'gst_number' => 'sometimes|string|max:20',
-                    'website' => 'sometimes|url',
+                    'website' => 'sometimes',
                     'category_id' => 'sometimes',
                     'subcategory_id' => 'sometimes',
                 ];
