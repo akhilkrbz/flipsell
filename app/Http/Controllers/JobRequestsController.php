@@ -117,70 +117,6 @@ class JobRequestsController extends Controller
                     $user_latitude = floatval($user->location_latitude);
                     $user_longitude = floatval($user->location_longitude);
     
-                    // Base query
-                    // $jobRequests = DB::table('job_requests as jr')
-                    //     ->select('jr.*', DB::raw('(6371 * acos(cos(radians(jr.location_langitude)) 
-                    //             * cos(radians('.$user_latitude.')) 
-                    //             * cos(radians('.$user_longitude.') - radians(jr.location_longitude)) 
-                    //             + sin(radians(jr.location_langitude)) 
-                    //             * sin(radians('.$user_latitude.')))) AS distance'))
-                    //     ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
-                    //     // ->where('jr.updated_at', '>=', date('Y-m-d'))
-                    //     ->where('jr.accepted_time', null);
-    
-                    // // Apply distance condition only if distance_limit > 0
-                    // $jobRequests = $jobRequests->where(function ($query) use ($user_latitude, $user_longitude) {
-                    //     $query->where('jr.distance_limit', 0)
-                    //         ->orWhereRaw('(6371 * acos(cos(radians(jr.location_langitude)) 
-                    //             * cos(radians(?)) 
-                    //             * cos(radians(?) - radians(jr.location_longitude)) 
-                    //             + sin(radians(jr.location_langitude)) 
-                    //             * sin(radians(?)))) <= jr.distance_limit', 
-                    //             [$user_latitude, $user_longitude, $user_latitude]);
-                    // })->orderBy('jr.updated_at', 'desc');
-    
-                    // // Execute query
-                    // $jobRequests = $jobRequests->get();
-
-
-                    // $jobRequests = DB::table('job_requests as jr')
-                    //     ->select('jr.*', 
-                    //         'jr.distance_limit', // Include distance_limit in the SELECT clause
-                    //         DB::raw('(6371 * acos(cos(radians(jr.location_langitude)) 
-                    //             * cos(radians(?)) 
-                    //             * cos(radians(?) - radians(jr.location_longitude)) 
-                    //             + sin(radians(jr.location_langitude)) 
-                    //             * sin(radians(?)))) AS distance'
-                    //         )
-                    //     )
-                    //     ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
-                    //     ->where('jr.accepted_time', null)
-                    //     ->havingRaw('(distance <= distance_limit OR distance_limit = 0)')
-                    //     ->orderBy('jr.updated_at', 'desc')
-                    //     ->setBindings([$user_latitude, $user_longitude, $user_latitude])
-                    //     ->get();
-
-                    // $jobRequests = DB::table('job_requests as jr')
-                    // ->select('jr.*', DB::raw("(6371 * acos(cos(radians(jr.location_langitude)) 
-                    //         * cos(radians($user_latitude)) 
-                    //         * cos(radians($user_longitude) - radians(jr.location_longitude)) 
-                    //         + sin(radians(jr.location_langitude)) 
-                    //         * sin(radians($user_latitude)))) AS distance"))
-                    // ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
-                    // ->where('jr.accepted_time', null)
-                    // ->where(function ($query) use ($user_latitude, $user_longitude) {
-                    //     $query->where('jr.distance_limit', 0)
-                    //           ->orWhereRaw("(6371 * acos(cos(radians(jr.location_langitude)) 
-                    //             * cos(radians($user_latitude)) 
-                    //             * cos(radians($user_longitude) - radians(jr.location_longitude)) 
-                    //             + sin(radians(jr.location_langitude)) 
-                    //             * sin(radians($user_latitude)))) <= jr.distance_limit");
-                    // })
-                    // ->orderBy('jr.updated_at', 'desc')
-                    // ->get();
-
-
-
                     $jobRequests = DB::table('job_requests as jr')
                         ->select('jr.*', DB::raw("(6371 * acos(cos(radians(COALESCE(jr.location_langitude, 0))) 
                                 * cos(radians($user_latitude)) 
@@ -189,6 +125,7 @@ class JobRequestsController extends Controller
                                 * sin(radians($user_latitude)))) AS distance"))
                         ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
                         ->where('jr.accepted_time', null)
+                        ->where('jr.user_id', '!=', $user->id)
                         ->whereNotNull('jr.location_langitude')  // Ignore rows where latitude is NULL
                         ->whereNotNull('jr.location_longitude') // Ignore rows where longitude is NULL
                         ->where(function ($query) use ($user_latitude, $user_longitude) {
@@ -199,14 +136,20 @@ class JobRequestsController extends Controller
                                     + sin(radians(COALESCE(jr.location_langitude, 0))) 
                                     * sin(radians($user_latitude)))) <= jr.distance_limit");
                         })
+                        ->whereNotExists(function ($query) use($user) {
+                            $query->select(DB::raw(1))
+                                ->from('requests_update as ru')
+                                ->whereColumn('ru.job_id', 'jr.id')
+                                ->where(function ($subQuery) use($user) {
+                                    $subQuery->where('ru.status', 1)
+                                        ->orWhere(function ($innerQuery) use($user) {
+                                            $innerQuery->where('ru.status', 0)
+                                                ->where('ru.business_id', $user->id);
+                                        });
+                                });
+                        })
                         ->orderBy('jr.updated_at', 'desc')
                         ->get();
-                
-
-
-
-
-
 
     
                     // return $jobRequests;
