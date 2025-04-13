@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\FirebaseNotificationController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\JobRequestsController;
@@ -63,3 +64,7 @@ Route::post('job_request_action', [JobRequestsController::class, 'jobRequestActi
 //Stripe apis
 Route::post('create_payment_intent', [SubscriptionController::class, 'createPaymentIntent']);
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
+
+
+//Firebase
+Route::post('/send_notification', [FirebaseNotificationController::class, 'sendNotification']);

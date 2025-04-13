@@ -45,7 +45,8 @@ class User extends Authenticatable implements JWTSubject
         'website',
         'gst',
         'country_id',
-        'verification_status'
+        'verification_status',
+        'device_token'
     ];
 
     /**
