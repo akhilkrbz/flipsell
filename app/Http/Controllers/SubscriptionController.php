@@ -125,6 +125,10 @@ class SubscriptionController extends Controller
                 $paymentIntent = $stripe->paymentIntents->create([
                     'amount'                => $plan->price * 100,
                     'currency'              => $currency,
+                    'metadata' => [
+                        'user_id' => $user->id,
+                        'plan_id'   => $plan->id
+                    ],
                     // 'payment_method_types'  => ['card']
                 ]);
 

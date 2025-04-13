@@ -10,6 +10,7 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\JobRequestsController;
 use App\Http\Controllers\NotificationPreferenceController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\SubscriptionController;
 
 Route::get('/user', function (Request $request) {
@@ -61,3 +62,4 @@ Route::post('job_request_action', [JobRequestsController::class, 'jobRequestActi
 
 //Stripe apis
 Route::post('create_payment_intent', [SubscriptionController::class, 'createPaymentIntent']);
+Route::post('stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
