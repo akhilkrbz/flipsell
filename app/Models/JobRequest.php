@@ -39,6 +39,7 @@ class JobRequest extends Model
     public function scopeBasic($query)
     {
         $query->select(
+            'id',
             'budget',
             'category_id',
             'subcategory_id',
