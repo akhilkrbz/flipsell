@@ -63,6 +63,7 @@ Route::post('job_request_action', [JobRequestsController::class, 'jobRequestActi
 
 //Stripe apis
 Route::post('create_payment_intent', [SubscriptionController::class, 'createPaymentIntent']);
+Route::post('check_payment_status', [SubscriptionController::class, 'checkPaymentStatus']);
 Route::post('stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
 
 

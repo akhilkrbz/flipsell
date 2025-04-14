@@ -135,7 +135,8 @@ class SubscriptionController extends Controller
                 return response()->json([
                     'status'        => 200,
                     'message'       => 'Payment intent created successfully.',
-                    'clientSecret'  => $paymentIntent->client_secret
+                    'payment_intent_id'  => $paymentIntent->id,
+                    'clientSecret'  => $paymentIntent->client_secret,
                 ]);
 
                 
@@ -148,6 +149,44 @@ class SubscriptionController extends Controller
 
         } catch (\Throwable $th) {
     
+            Log::error('Error:', [
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+    
+            return response()->json([
+                'success'   => false,
+                'message'   => 'Something went wrong!!!',
+                'exception' => $th->getMessage(),
+                'code'      => $th->getCode(),
+            ]);
+        }
+    }
+
+    //checkPaymentStatus
+    public function checkPaymentStatus(Request $request)
+    {
+        try {
+            require_once base_path('vendor/stripe/stripe-php/init.php');
+            $stripe_sk = env('STRIPE_SECRET');
+            $stripe = new \Stripe\StripeClient($stripe_sk);
+
+            $payment_intent_id = 'pi_3RDjqqP7vVhAmw1G1BRgeHv0';
+            $paymentIntent = $stripe->paymentIntents->retrieve($payment_intent_id);
+
+            // You can now check:
+            $status = $paymentIntent->status;
+            $amountReceived = $paymentIntent->amount_received;
+            $currency = $paymentIntent->currency;
+
+            return response()->json([
+                'status'            => 200,
+                'payment_status'    => $status,
+                'amount_received'   => $amountReceived,
+                'currency'          => $currency,
+            ]);
+
+        } catch (\Throwable $th) {
             Log::error('Error:', [
                 'exception' => $th->getMessage(),
                 'code'      => $th->getCode(),
