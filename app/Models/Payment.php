@@ -21,4 +21,10 @@ class Payment extends Model
         'order_id',
         'plan_id',
     ];
+
+
+    public function subscription()
+    {
+        return $this->belongsTo(Subscription::class, 'id', 'payment_id');
+    }
 }

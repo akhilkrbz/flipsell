@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Models\Payment;
 use App\Models\Subscription;
 use App\Models\Plan;
 use Illuminate\Support\Facades\Auth;
@@ -133,10 +135,10 @@ class SubscriptionController extends Controller
                 ]);
 
                 return response()->json([
-                    'status'        => 200,
-                    'message'       => 'Payment intent created successfully.',
-                    'payment_intent_id'  => $paymentIntent->id,
-                    'clientSecret'  => $paymentIntent->client_secret,
+                    'status'                => 200,
+                    'message'               => 'Payment intent created successfully.',
+                    'payment_intent_id'     => $paymentIntent->id,
+                    'clientSecret'          => $paymentIntent->client_secret,
                 ]);
 
                 
@@ -167,23 +169,18 @@ class SubscriptionController extends Controller
     public function checkPaymentStatus(Request $request)
     {
         try {
-            require_once base_path('vendor/stripe/stripe-php/init.php');
-            $stripe_sk = env('STRIPE_SECRET');
-            $stripe = new \Stripe\StripeClient($stripe_sk);
+            $user = auth('api')->user();
 
-            $payment_intent_id = 'pi_3RDjqqP7vVhAmw1G1BRgeHv0';
-            $paymentIntent = $stripe->paymentIntents->retrieve($payment_intent_id);
+            $payment_intent_id = $request->payment_intent_id;
 
-            // You can now check:
-            $status = $paymentIntent->status;
-            $amountReceived = $paymentIntent->amount_received;
-            $currency = $paymentIntent->currency;
+            $payment_data = Payment::where(['user_id' => $user->id, 'payment_intent_id' => $payment_intent_id])
+            ->with('subscription.plan')
+            ->order_by('id', 'desc')->first();
 
             return response()->json([
                 'status'            => 200,
-                'payment_status'    => $status,
-                'amount_received'   => $amountReceived,
-                'currency'          => $currency,
+                'payment_status'    => $payment_data->status,
+                'payment_data'      => $payment_data
             ]);
 
         } catch (\Throwable $th) {
