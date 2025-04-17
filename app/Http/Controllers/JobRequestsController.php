@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\JobRequest;
 use App\Models\RequestsUpdate;
 use App\Models\ServiceProvider;
+use App\Models\Subcategory;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -163,6 +165,10 @@ class JobRequestsController extends Controller
                             $job->image_1 = $job->image_1 ? asset($job->image_1) : '';
                             $job->image_2 = $job->image_2 ? asset($job->image_2) : '';
                             $job->image_3 = $job->image_3 ? asset($job->image_3) : '';
+
+                        //category
+                        $$jobRequests[$key]->category = Category::where('id', $job->category_id)->first();
+                        $$jobRequests[$key]->sub_category = Subcategory::where('id', $job->subcategory_id)->first();
                     }
     
                     return response()->json([
