@@ -178,6 +178,12 @@ class AuthController extends Controller
             if ($query->exists()) {
                 $user = $query->first();
 
+                if(isset($request->device_token) && $request->device_token != '') {
+                    $user->device_token = $request->device_token ? $request->device_token : '';
+                    $user->save();
+                }
+                
+
                 //Verify OTP
                 $otp_verify_status = 'approved'; //$this->verify_login_otp($request->mobile_no, $request->otp);
                 if($otp_verify_status == 'approved') {
