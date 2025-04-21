@@ -167,8 +167,8 @@ class JobRequestsController extends Controller
                             $job->image_3 = $job->image_3 ? asset($job->image_3) : '';
 
                         //category
-                        $$jobRequests[$key]->category = Category::where('id', $job->category_id)->first();
-                        $$jobRequests[$key]->sub_category = Subcategory::where('id', $job->subcategory_id)->first();
+                        $jobRequests[$key]->category = Category::where('id', $job->category_id)->first();
+                        $jobRequests[$key]->sub_category = Subcategory::where('id', $job->subcategory_id)->first();
                     }
     
                     return response()->json([

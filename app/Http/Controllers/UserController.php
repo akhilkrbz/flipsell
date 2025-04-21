@@ -146,7 +146,9 @@ class UserController extends Controller
                     'plan_name' => $plan->plan_name,
                     'month_no' => $plan->month_no,
                     'price' => $plan->price,
-                    'description' => $plan->description
+                    'description' => $plan->description,
+                    'start_date' => $subscription->start_date,
+                    'end_date' => $subscription->end_date,
                 ];
             }
         } else {
