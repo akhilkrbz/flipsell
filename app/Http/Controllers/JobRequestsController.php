@@ -59,8 +59,10 @@ class JobRequestsController extends Controller
                 'flexible'          => $request->flexible,
                 'looking_for'       => $request->looking_for,
                 'location'          => $request->location,
-                'location_langitude'          => $request->location_latitude,
-                'location_longitude'          => $request->location_longitude,
+                // 'location_langitude'          => $request->location_latitude,
+                // 'location_longitude'          => $request->location_longitude,
+                'location_langitude'          => $request->location_longitude,
+                'location_longitude'          => $request->location_latitude,
                 'tags'              => $request->tags,
                 'distance_limit'    => $request->distance_limit,
                 'user_id'           => $user->id,
@@ -118,24 +120,27 @@ class JobRequestsController extends Controller
     
                     $user_latitude = floatval($user->location_latitude);
                     $user_longitude = floatval($user->location_longitude);
+
+                    // location_langitude
+                    // location_longitude
     
                     $jobRequests = DB::table('job_requests as jr')
-                        ->select('jr.*', DB::raw("(6371 * acos(cos(radians(COALESCE(jr.location_langitude, 0))) 
+                        ->select('jr.*', DB::raw("(6371 * acos(cos(radians(COALESCE(jr.location_longitude, 0))) 
                                 * cos(radians($user_latitude)) 
-                                * cos(radians($user_longitude) - radians(COALESCE(jr.location_longitude, 0))) 
-                                + sin(radians(COALESCE(jr.location_langitude, 0))) 
+                                * cos(radians($user_longitude) - radians(COALESCE(jr.location_langitude, 0))) 
+                                + sin(radians(COALESCE(jr.location_longitude, 0))) 
                                 * sin(radians($user_latitude)))) AS distance"))
                         ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
                         ->where('jr.accepted_time', null)
                         ->where('jr.user_id', '!=', $user->id)
-                        ->whereNotNull('jr.location_langitude')  // Ignore rows where latitude is NULL
-                        ->whereNotNull('jr.location_longitude') // Ignore rows where longitude is NULL
+                        ->whereNotNull('jr.location_longitude')
+                        ->whereNotNull('jr.location_langitude')
                         ->where(function ($query) use ($user_latitude, $user_longitude) {
                             $query->where('jr.distance_limit', 0)
-                                ->orWhereRaw("(6371 * acos(cos(radians(COALESCE(jr.location_langitude, 0))) 
+                                ->orWhereRaw("(6371 * acos(cos(radians(COALESCE(jr.location_longitude, 0))) 
                                     * cos(radians($user_latitude)) 
-                                    * cos(radians($user_longitude) - radians(COALESCE(jr.location_longitude, 0))) 
-                                    + sin(radians(COALESCE(jr.location_langitude, 0))) 
+                                    * cos(radians($user_longitude) - radians(COALESCE(jr.location_langitude, 0))) 
+                                    + sin(radians(COALESCE(jr.location_longitude, 0))) 
                                     * sin(radians($user_latitude)))) <= jr.distance_limit");
                         })
                         ->whereNotExists(function ($query) use($user) {
@@ -152,6 +157,38 @@ class JobRequestsController extends Controller
                         })
                         ->orderBy('jr.updated_at', 'desc')
                         ->get();
+
+                    // $jobRequests = DB::table(DB::raw("(SELECT jr.*, 
+                    //     (6371 * acos(cos(radians(COALESCE(jr.location_langitude, 0))) 
+                    //     * cos(radians($user_latitude)) 
+                    //     * cos(radians($user_longitude) - radians(COALESCE(jr.location_longitude, 0))) 
+                    //     + sin(radians(COALESCE(jr.location_langitude, 0))) 
+                    //     * sin(radians($user_latitude)))) AS distance 
+                    //     FROM job_requests AS jr) AS jr"))
+                    // ->whereIn('jr.subcategory_id', (array)$user_subcat_ids)
+                    // ->whereNull('jr.accepted_time')
+                    // ->where('jr.user_id', '!=', $user->id)
+                    // ->whereNotNull('jr.location_langitude')
+                    // ->whereNotNull('jr.location_longitude')
+                    // ->where(function ($query) {
+                    //     $query->where('jr.distance_limit', 0)
+                    //         ->orWhereColumn('jr.distance', '<=', 'jr.distance_limit');
+                    // })
+                    
+                    // ->whereNotExists(function ($query) use($user) {
+                    //     $query->select(DB::raw(1))
+                    //         ->from('requests_update as ru')
+                    //         ->whereColumn('ru.job_id', 'jr.id')
+                    //         ->where(function ($subQuery) use($user) {
+                    //             $subQuery->where('ru.status', 1)
+                    //                 ->orWhere(function ($innerQuery) use($user) {
+                    //                     $innerQuery->where('ru.status', 0)
+                    //                         ->where('ru.business_id', $user->id);
+                    //                 });
+                    //         });
+                    // })
+                    // ->orderBy('jr.updated_at', 'desc')
+                    // ->get();
 
     
                     // return $jobRequests;
@@ -414,8 +451,10 @@ class JobRequestsController extends Controller
                     'flexible'          => $request->flexible,
                     'looking_for'       => $request->looking_for,
                     'location'          => $request->location,
-                    'location_langitude'          => $request->location_latitude,
-                    'location_longitude'          => $request->location_longitude,
+                    // 'location_langitude'          => $request->location_latitude,
+                    // 'location_longitude'          => $request->location_longitude,
+                    'location_langitude'          => $request->location_longitude,
+                    'location_longitude'          => $request->location_latitude,
                     'tags'              => $request->tags,
                     'distance_limit'    => $request->distance_limit,
                     // 'user_id'           => $user->id,
