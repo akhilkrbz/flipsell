@@ -206,6 +206,7 @@ class JobRequestsController extends Controller
                         //category
                         $jobRequests[$key]->category = Category::where('id', $job->category_id)->first();
                         $jobRequests[$key]->sub_category = Subcategory::where('id', $job->subcategory_id)->first();
+                        $jobRequests[$key]->user_data = User::where('id', $job->user_id)->first();
                     }
     
                     return response()->json([
@@ -230,6 +231,7 @@ class JobRequestsController extends Controller
                 })->with([
                     'category', 
                     'sub_category', 
+                    'user_data', 
                     'request_update.service_provider_data.service_details',
                     'request_update.service_provider_data.country'
                 ])
