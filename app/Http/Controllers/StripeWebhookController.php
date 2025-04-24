@@ -9,11 +9,13 @@ use Illuminate\Http\Request;
 
 use Stripe\Stripe;
 use Stripe\Webhook;
+use Illuminate\Support\Facades\Log;
 
 class StripeWebhookController extends Controller
 {
     public function handleWebhook(Request $request)
     {
+        Log::info('Stripe webhook starts');
         $endpoint_secret = env('STRIPE_WEBHOOK_SECRET'); // from Stripe dashboard
 
         $payload = $request->getContent();
@@ -21,12 +23,21 @@ class StripeWebhookController extends Controller
 
         try {
             $event = Webhook::constructEvent($payload, $sig_header, $endpoint_secret);
+
+            Log::info('Stripe webhook event');
+            Log::info($event);
+
+
         } catch (\Exception $e) {
+            Log::info('Invalid signature');
             return response('Invalid signature', 400);
         }
 
         if ($event->type === 'payment_intent.succeeded') {
             $intent = $event->data->object;
+
+            Log::info('Payment intent data');
+            Log::info($intent);
 
             // Save to database
             $payment = \App\Models\Payment::create([
@@ -59,7 +70,7 @@ class StripeWebhookController extends Controller
                 Subscription::create($subscription_data);
             }
         }
-
+        Log::info('Webhook ends');
         return response()->json(['status' => 'success']);
     }
 }
