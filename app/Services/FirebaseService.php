@@ -5,6 +5,8 @@ namespace App\Services;
 use Google\Auth\OAuth2;
 use Illuminate\Support\Facades\Http;
 
+use Illuminate\Support\Facades\Log;
+
 class FirebaseService
 {
     protected $projectId;
@@ -59,6 +61,9 @@ class FirebaseService
                 'Authorization' => 'Bearer ' . $accessToken,
                 'Content-Type' => 'application/json',
             ])->post("https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send", $message);
+
+            Log::info('response inside notification send function');
+            Log::info($response);
         }
 
         return $response;
