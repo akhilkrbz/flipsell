@@ -62,8 +62,8 @@ class FirebaseService
                 'Content-Type' => 'application/json',
             ])->post("https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send", $message);
 
-            Log::info('response inside notification send function');
-            Log::info($response);
+            Log::channel('cronjob')->info('response inside notification send function');
+            Log::channel('cronjob')->info($response);
         }
 
         return $response;
