@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Payment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use Carbon\Carbon;
@@ -40,7 +41,7 @@ class StripeWebhookController extends Controller
             Log::channel('webhook')->info($intent);
 
             // Save to database
-            $payment = \App\Models\Payment::create([
+            $payment = Payment::create([
                 'payment_intent_id'     => $intent->id,
                 'amount_paid'           => $intent->amount / 100,
                 'currency'              => $intent->currency,
@@ -55,9 +56,18 @@ class StripeWebhookController extends Controller
 
             ]);
 
+            Log::channel('webhook')->info('Payment data');
+            Log::channel('webhook')->info($payment);
+
             if($payment) {
 
+                Log::channel('webhook')->info('Payment data saved');
+                Log::channel('webhook')->info($payment);
+
                 $plan_data = Plan::where('id', $intent->metadata->plan_id)->first();
+
+                Log::channel('webhook')->info('plan data');
+                Log::channel('webhook')->info($plan_data);
 
                 $subscription_data = [
                     'plan_id'       => $intent->metadata->plan_id,
@@ -67,7 +77,13 @@ class StripeWebhookController extends Controller
                     'payment_id'    => $payment->id
                 ];
 
-                Subscription::create($subscription_data);
+                Log::channel('webhook')->info('subscription data');
+                Log::channel('webhook')->info(json_encode($subscription_data));
+
+                $saveSub = Subscription::create($subscription_data);
+
+                Log::channel('webhook')->info('subscription data save');
+                Log::channel('webhook')->info($saveSub);
             }
         }
         Log::channel('webhook')->info('Webhook ends');
