@@ -68,4 +68,4 @@ Route::post('stripe/webhook', [StripeWebhookController::class, 'handleWebhook'])
 
 
 //Firebase
-Route::post('/send_notification', [FirebaseNotificationController::class, 'sendNotification']);
+Route::get('/send_notification', [FirebaseNotificationController::class, 'sendNotification']);
