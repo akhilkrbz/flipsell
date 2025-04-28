@@ -34,6 +34,7 @@ class JobRequest extends Model
         'connect_type',
         'created_at',
         'updated_at',
+        'notification_send',
     ];
 
     public function scopeBasic($query)

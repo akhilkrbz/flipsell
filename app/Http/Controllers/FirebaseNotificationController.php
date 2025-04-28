@@ -2,47 +2,75 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\JobRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
-use Illuminate\Support\Facades\Http;
+use App\Services\FirebaseService;
 
 class FirebaseNotificationController extends Controller
 {
-    public function sendNotification(Request $request)
-    {
-        // Retrieve data from the request
-        $deviceToken = $request->device_token;
-        $title = $request->title ?: 'Default Title';
-        $body = $request->body ?: 'Default Body' ;
+    protected $firebaseService;
 
-        // Prepare the notification payload
+    public function __construct(FirebaseService $firebaseService)
+    {
+        $this->firebaseService = $firebaseService;
+    }
+
+    public function sendNotification_ref(Request $request)
+    {
+        // Device token should be passed in the request body
+        $deviceToken = 'eUATkIHxSOmlR0BuOONPVS:APA91bFNdGXqPD4qwATAAag7-T80897h10OYnE37i0CRSe2AmuTG6r96SA8ehz3H6T8zCRgCTKvo9frJcReprRCPKBw0G86ZnhIE91Ny-o8R9ldZQLvBFMw'; //$request->input('device_token');
+        $title = 'Test noti title';//$request->input('title');
+        $body = 'Flipsell notification';//$request->input('body');
+        //$data = $request->input('data', []);
+
         $data = [
-            // For a single device, you can use "to".
-            // For multiple devices, replace with "registration_ids" => [$deviceToken1, $deviceToken2, ...]
-            'to' => $deviceToken,
-            'notification' => [
-                'title' => $title,
-                'body'  => $body,
-                'sound' => 'default',
-            ],
-            'data' => [
-                'customData' => 'value1',
-            ],
-            'priority' => 'high',
+            'order_id' => '12345',
+            'screen' => 'OrderDetails'
         ];
 
-        // Get the Firebase server key from environment
-        $serverKey = env('FCM_SERVER_KEY');
+        $response = $this->firebaseService->sendNotification($deviceToken, $title, $body, $data);
 
-        // Send a POST request to FCM
-        $response = Http::withHeaders([
-            'Authorization' => 'key=' . $serverKey,
-            'Content-Type'  => 'application/json',
-        ])->post('https://fcm.googleapis.com/fcm/send', $data);
-
-        return response()->json([
-            'success'  => true,
-            'response' => $response->json(),
-        ]);
+        return response()->json($response);
     }
+
+
+
+    public function sendNotification(Request $request)
+    {
+
+        $job_reqs = JobRequest::where('notification_send', 0)->get();
+        $users = User::select(['device_token'])->where('usertype', 1)->where('device_token', '!=', null)->get();
+        $deviceToken = $users->pluck('device_token')->toarray();
+        foreach($job_reqs as $key => $job_req) {
+            $title = 'New job request added';//$request->input('title');
+            $body = 'New job request added';//$request->input('body');
+            //$data = $request->input('data', []);
+    
+            $data = [
+                'job_id' => $job_req->id,
+                'type' => 'new_request',
+                'screen' => 'JobDetails'
+            ];
+    
+            $response = $this->firebaseService->sendNotification($deviceToken, $title, $body, $data);
+
+            DB::table('job_requests')->where('id', $job_req->id)->update(['notification_send' => 1]);
+        }
+
+        $response = [
+            'status' => 200,
+            'data' => 'Notification send successfully.'
+        ];
+
+        // Device token should be passed in the request body
+        //$deviceToken = 'eUATkIHxSOmlR0BuOONPVS:APA91bFNdGXqPD4qwATAAag7-T80897h10OYnE37i0CRSe2AmuTG6r96SA8ehz3H6T8zCRgCTKvo9frJcReprRCPKBw0G86ZnhIE91Ny-o8R9ldZQLvBFMw'; //$request->input('device_token');
+        
+
+        return response()->json($response);
+    }
+
+
 }
