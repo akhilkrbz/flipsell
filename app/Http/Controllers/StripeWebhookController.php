@@ -39,6 +39,8 @@ class StripeWebhookController extends Controller
 
             Log::channel('webhook')->info('Payment intent data');
             Log::channel('webhook')->info($intent);
+            Log::channel('webhook')->info($intent->id);
+            Log::channel('webhook')->info($intent->amount);
 
             // Save to database
             $payment = Payment::create([
