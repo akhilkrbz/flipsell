@@ -42,8 +42,7 @@ class StripeWebhookController extends Controller
             Log::channel('webhook')->info($intent->id);
             Log::channel('webhook')->info($intent->amount);
 
-            // Save to database
-            $payment = Payment::create([
+            $payment_details = [
                 'payment_intent_id'     => $intent->id,
                 'amount_paid'           => $intent->amount / 100,
                 'currency'              => $intent->currency,
@@ -55,10 +54,15 @@ class StripeWebhookController extends Controller
                 'plan_id'               => $intent->metadata->plan_id ?? null,
                 'created_at'            => Carbon::now(),
                 'updated_at'            => Carbon::now(),
-
-            ]);
+            ];
 
             Log::channel('webhook')->info('Payment data');
+            Log::channel('webhook')->info(json_encode($payment_details));
+
+            // Save to database
+            $payment = Payment::create($payment_details);
+
+            Log::channel('webhook')->info('Payment data save');
             Log::channel('webhook')->info($payment);
 
             if($payment) {
