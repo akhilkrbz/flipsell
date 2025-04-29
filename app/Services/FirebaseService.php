@@ -44,6 +44,13 @@ class FirebaseService
         $accessToken = $this->getAccessToken();
         $response = true;
         foreach ($deviceToken as $dt) {
+
+            $data = array_map('strval', $data);
+
+            Log::channel('cronjob')->info('response inside notification send function data');
+            Log::channel('cronjob')->info(json_encode($data));
+
+
             $message = [
                 'message' => [
                     'token' => $dt,

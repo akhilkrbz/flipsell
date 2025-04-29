@@ -54,7 +54,7 @@ class FirebaseNotificationController extends Controller
 
 
         foreach($job_reqs as $key => $job_req) {
-            $title = 'New job request added';//$request->input('title');
+            $title = 'Flipsell';//$request->input('title');
             $body = 'New job request added';//$request->input('body');
             //$data = $request->input('data', []);
     
