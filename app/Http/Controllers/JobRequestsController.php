@@ -381,6 +381,15 @@ class JobRequestsController extends Controller
                 $job_data->image_2 = $job_data->image_2 ? asset($job_data->image_2) : '';
                 $job_data->image_3 = $job_data->image_3 ? asset($job_data->image_3) : '';
 
+            //Job request status
+            $job_req_status = RequestsUpdate::where('job_id', $request->request_id)->orderBy('id', 'desc')->first();
+            if($job_req_status) {
+                $job_data->job_request_status = ($job_req_status->status = 1) ? 'Accepted' : 'Rejected';
+            } else {
+                $job_data->job_request_status = 'Not accepted';
+            }
+           
+
 
             return response()->json([
                 'status'    => 200,
