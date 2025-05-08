@@ -205,7 +205,8 @@ class JobRequestsController extends Controller
 
                         //category
                         $jobRequests[$key]->category = Category::where('id', $job->category_id)->first();
-                        $jobRequests[$key]->sub_category = Subcategory::where('id', $job->subcategory_id)->first();
+                        $jobRequests[$key]->sub_category = Category::where('id', $job->subcategory_id)->first();
+                        // $jobRequests[$key]->sub_category = Subcategory::where('id', $job->subcategory_id)->first();
                         $jobRequests[$key]->user_data = User::where('id', $job->user_id)->first();
                     }
     
@@ -343,6 +344,79 @@ class JobRequestsController extends Controller
                     'success'   => true,
                     'data'      => $job_reqs
                 ]);
+            } else if($request->type == 3) {            //All job requests
+                if($user->id) {
+                    // $user_service_details = ServiceProvider::where('user_id', $user->id)->first();
+                    // $user_subcat_ids = $user_service_details->subcategory_id ? json_decode($user_service_details->subcategory_id, true) : [];
+
+                    $user_subcats = Subcategory::where(['user_id' => $user->id, 'chosen' => 1])->get();
+                    $user_subcat_ids = $user_subcats->pluck('subcategory')->toArray();
+
+                    $user_latitude = floatval($user->location_latitude);
+                    $user_longitude = floatval($user->location_longitude);
+
+                    $jobRequests = DB::table('job_requests as jr')
+                        ->select('jr.*', DB::raw("(6371 * acos(cos(radians(COALESCE(jr.location_longitude, 0))) 
+                                * cos(radians($user_latitude)) 
+                                * cos(radians($user_longitude) - radians(COALESCE(jr.location_langitude, 0))) 
+                                + sin(radians(COALESCE(jr.location_longitude, 0))) 
+                                * sin(radians($user_latitude)))) AS distance"))
+                        ->whereIn('jr.subcategory_id', $user_subcat_ids)
+                        ->where('jr.accepted_time', null)
+                        ->where('jr.user_id', '!=', $user->id)
+                        ->whereNotNull('jr.location_longitude')
+                        ->whereNotNull('jr.location_langitude')
+                        ->where(function ($query) use ($user_latitude, $user_longitude) {
+                            $query->where('jr.distance_limit', 0)
+                                ->orWhereRaw("(6371 * acos(cos(radians(COALESCE(jr.location_longitude, 0))) 
+                                    * cos(radians($user_latitude)) 
+                                    * cos(radians($user_longitude) - radians(COALESCE(jr.location_langitude, 0))) 
+                                    + sin(radians(COALESCE(jr.location_longitude, 0))) 
+                                    * sin(radians($user_latitude)))) <= jr.distance_limit");
+                        })
+                        ->whereNotExists(function ($query) use($user) {
+                            $query->select(DB::raw(1))
+                                ->from('requests_update as ru')
+                                ->whereColumn('ru.job_id', 'jr.id')
+                                ->where(function ($subQuery) use($user) {
+                                    $subQuery->where('ru.status', 1)
+                                        ->orWhere(function ($innerQuery) use($user) {
+                                            $innerQuery->where('ru.status', 0)
+                                                ->where('ru.business_id', $user->id);
+                                        });
+                                });
+                        })
+                        ->orderBy('jr.updated_at', 'desc')
+                        ->get();
+
+                    foreach($jobRequests as $key => $job) {
+                        $jobRequests[$key]->images = array_filter([
+                            $job->image_1 ? asset($job->image_1) : '', 
+                            $job->image_2 ? asset($job->image_2) : '', 
+                            $job->image_3 ? asset($job->image_3) : '']);
+
+                            $job->image_1 = $job->image_1 ? asset($job->image_1) : '';
+                            $job->image_2 = $job->image_2 ? asset($job->image_2) : '';
+                            $job->image_3 = $job->image_3 ? asset($job->image_3) : '';
+
+                        //category
+                        $jobRequests[$key]->category = Category::where('id', $job->category_id)->first();
+                        $jobRequests[$key]->sub_category = Category::where('id', $job->subcategory_id)->first();
+                        $jobRequests[$key]->user_data = User::where('id', $job->user_id)->first();
+                    }
+    
+                    return response()->json([
+                        'status'    => 200,
+                        'success'   => true,
+                        'data'      => $jobRequests
+                    ]);
+                } else {
+                    return response()->json([
+                        'status'    => 200,
+                        'success'   => false,
+                        'message'      => 'User not found'
+                    ]);
+                }
             }
 
         } catch (\Throwable $th) {
