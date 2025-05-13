@@ -208,6 +208,15 @@ class JobRequestsController extends Controller
                         $jobRequests[$key]->sub_category = Category::where('id', $job->subcategory_id)->first();
                         // $jobRequests[$key]->sub_category = Subcategory::where('id', $job->subcategory_id)->first();
                         $jobRequests[$key]->user_data = User::where('id', $job->user_id)->first();
+
+                        //Job request status
+                        $job_req_status = RequestsUpdate::where('job_id', $job->id)->orderBy('id', 'desc')->first();
+                        if($job_req_status) {
+                            $jobRequests[$key]->job_request_status = ($job_req_status->status = 1) ? 'Accepted' : 'Rejected';
+                        } else {
+                            $jobRequests[$key]->job_request_status = 'Not accepted';
+                        }
+                        
                     }
     
                     return response()->json([
@@ -249,6 +258,15 @@ class JobRequestsController extends Controller
                     $job->image_1 = $job->image_1 ? asset($job->image_1) : '';
                     $job->image_2 = $job->image_2 ? asset($job->image_2) : '';
                     $job->image_3 = $job->image_3 ? asset($job->image_3) : '';
+
+                    //Job request status
+                    $job_req_status = RequestsUpdate::where('job_id', $job->id)->orderBy('id', 'desc')->first();
+                    if($job_req_status) {
+                        $job->job_request_status = ($job_req_status->status = 1) ? 'Accepted' : 'Rejected';
+                    } else {
+                        $job->job_request_status = 'Not accepted';
+                    }
+
                 }
 
                 return response()->json([
@@ -312,6 +330,17 @@ class JobRequestsController extends Controller
                     $job->image_1 = $job->image_1 ? asset($job->image_1) : '';
                     $job->image_2 = $job->image_2 ? asset($job->image_2) : '';
                     $job->image_3 = $job->image_3 ? asset($job->image_3) : '';
+
+
+                    //Job request status
+                    $job_req_status = RequestsUpdate::where('job_id', $job->id)->orderBy('id', 'desc')->first();
+                    if($job_req_status) {
+                        $job->job_request_status = ($job_req_status->status = 1) ? 'Accepted' : 'Rejected';
+                    } else {
+                        $job->job_request_status = 'Not accepted';
+                    }
+
+
                 }
 
                 return response()->json([
@@ -323,7 +352,7 @@ class JobRequestsController extends Controller
             } else if($request->type == 2) {            //Accepted
                 // $job_reqs = JobRequest::User($user->id)->Accepted()->with(['category', 'sub_category'])->get();
 
-                $job_reqs = JobRequest::User($user->id)->whereHas('request_update', function($q1) use ($user) {
+                $job_reqs = JobRequest::Basic()->AddRequestStatus()->User($user->id)->whereHas('request_update', function($q1) use ($user) {
                     return $q1->where(['status' => 1]);
                 })->with([
                     'category', 
@@ -337,6 +366,17 @@ class JobRequestsController extends Controller
                         $job->image_1 ? asset($job->image_1) : '', 
                         $job->image_2 ? asset($job->image_2) : '', 
                         $job->image_3 ? asset($job->image_3) : '']);
+
+
+                    //Job request status
+                    $job_req_status = RequestsUpdate::where('job_id', $job->id)->orderBy('id', 'desc')->first();
+                    if($job_req_status) {
+                        $job->job_request_status = ($job_req_status->status = 1) ? 'Accepted' : 'Rejected';
+                    } else {
+                        $job->job_request_status = 'Not accepted';
+                    }
+
+
                 }
 
                 return response()->json([
@@ -403,6 +443,16 @@ class JobRequestsController extends Controller
                         $jobRequests[$key]->category = Category::where('id', $job->category_id)->first();
                         $jobRequests[$key]->sub_category = Category::where('id', $job->subcategory_id)->first();
                         $jobRequests[$key]->user_data = User::where('id', $job->user_id)->first();
+
+
+                        //Job request status
+                        $job_req_status = RequestsUpdate::where('job_id', $job->id)->orderBy('id', 'desc')->first();
+                        if($job_req_status) {
+                            $jobRequests[$key]->job_request_status = ($job_req_status->status = 1) ? 'Accepted' : 'Rejected';
+                        } else {
+                            $jobRequests[$key]->job_request_status = 'Not accepted';
+                        }
+
                     }
     
                     return response()->json([
