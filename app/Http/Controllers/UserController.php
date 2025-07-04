@@ -50,6 +50,9 @@ class UserController extends Controller
         $cat_array = [];
         $subcat_array = [];
 
+        //User verification status
+        $user_verification_status = $user->verification_status;
+
         if($service_provider_data) {
             if($service_provider_data->category_id) {
                 $categroy_ids = json_decode($service_provider_data->category_id, true);
@@ -73,6 +76,14 @@ class UserController extends Controller
                     ];
                 }
             }
+
+            if($service_provider_data->status == 0) {
+                $user_verification_status = 'pending';
+            } else if($service_provider_data->status == 1) {
+                $user_verification_status = 'accepted';
+            } else {
+                $user_verification_status = 'rejected';
+            }
         }
         
         //User verification completion
@@ -91,7 +102,7 @@ class UserController extends Controller
             'verification_image1' => $user->verification_image1,
             'verification_image2' => $user->verification_image2,
             'status' => $user->status,
-            'verification_status' => $user->verification_status,
+            'verification_status' => $user_verification_status,
             'location_latitude' => $user->location_latitude,
             'location_longitude' => $user->location_longitude,
             'location' => $user->location,
